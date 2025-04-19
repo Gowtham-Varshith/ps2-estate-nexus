@@ -1,4 +1,3 @@
-
 // Mock data for PS2 Real Estate Management System
 
 // User roles
@@ -779,6 +778,117 @@ export const backups: Backup[] = [
     createdBy: 1,
   },
 ];
+
+// Add getter functions for the data
+
+// Get layouts
+export const getLayouts = () => {
+  return layouts;
+};
+
+// Get clients
+export const getClients = () => {
+  return clients;
+};
+
+// Get billings
+export const getBillings = () => {
+  return bills;
+};
+
+// Get expenses
+export const getExpenses = () => {
+  return expenses;
+};
+
+// Get documents
+export const getDocuments = () => {
+  return documents;
+};
+
+// Get activity logs
+export const getActivityLogs = () => {
+  return logs.map(log => {
+    const user = users.find(u => u.id === log.userId);
+    return {
+      id: log.id,
+      timestamp: log.timestamp,
+      user: user?.name || "Unknown User",
+      userRole: user?.role || "unknown",
+      action: log.action,
+      actionType: log.action,
+      description: log.details,
+      ipAddress: "192.168.1." + Math.floor(Math.random() * 255)
+    };
+  });
+};
+
+// Get backup logs
+export const getBackupLogs = () => {
+  return backups.map(backup => {
+    const user = users.find(u => u.id === backup.createdBy);
+    const date = new Date(backup.timestamp).toLocaleDateString();
+    const time = new Date(backup.timestamp).toLocaleTimeString();
+    
+    return {
+      id: backup.id,
+      date,
+      time,
+      type: backup.type,
+      status: backup.status,
+      size: backup.size,
+      user: user?.name || "Unknown"
+    };
+  });
+};
+
+// Get billings by client
+export const getBillingsByClient = (clientId: number) => {
+  return bills.filter(bill => bill.clientId === clientId).map(bill => {
+    const layout = layouts.find(l => {
+      const plot = plots.find(p => p.id === bill.plotId);
+      return plot && l.id === plot.layoutId;
+    });
+    
+    const plot = plots.find(p => p.id === bill.plotId);
+    
+    return {
+      id: bill.id,
+      date: bill.createdAt,
+      invoiceNumber: `INV-${bill.id.toString().padStart(4, '0')}`,
+      layoutId: layout?.id || 0,
+      layoutName: layout?.name || "Unknown Layout",
+      plotNumber: plot?.plotNo || "Unknown",
+      areaSqft: bill.areaInSqft,
+      amount: bill.ledgerType === "white" ? bill.govValue : bill.blackValue || 0,
+      isPaid: bill.dueAmount === 0,
+      isBlackEntry: bill.ledgerType === "black"
+    };
+  });
+};
+
+// Get expenses by client
+export const getExpensesByClient = (clientId: number) => {
+  // Find plots associated with the client
+  const clientPlots = plots.filter(plot => plot.clientId === clientId).map(plot => plot.id);
+  
+  // Return expenses related to those plots
+  return expenses.filter(expense => expense.plotId !== null && clientPlots.includes(expense.plotId)).map(expense => {
+    const plot = plots.find(p => p.id === expense.plotId);
+    const layout = layouts.find(l => l.id === expense.layoutId);
+    
+    return {
+      id: expense.id,
+      date: expense.date,
+      description: expense.description,
+      amount: expense.amount,
+      type: expense.type,
+      plotNumber: plot?.plotNo || "Unknown",
+      layout: layout?.name || "Unknown Layout",
+      isBlackEntry: expense.visibility === "black" || expense.visibility === "both"
+    };
+  });
+};
 
 // Dashboard statistics
 export const getDashboardStats = (role: UserRole) => {
