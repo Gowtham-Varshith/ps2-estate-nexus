@@ -786,6 +786,7 @@ export interface BillingForDisplay {
   invoiceNumber: string;
   clientName: string;
   layoutId: number;
+  layoutName?: string;
   plotNumber: string;
   areaSqft: number;
   amount: number;
@@ -806,6 +807,8 @@ export interface ClientForDisplay extends Client {
   totalSpent: number;
   dueAmount: number;
   status: 'active' | 'pending' | 'inactive';
+  properties?: any[];
+  documents?: any[];
 }
 
 export interface DocumentForDisplay extends Document {
@@ -1115,8 +1118,8 @@ export const getBackupLogs = () => {
       id: backup.id,
       date: new Date(backup.timestamp).toLocaleDateString(),
       time: new Date(backup.timestamp).toLocaleTimeString(),
-      type: backup.type,
-      status: backup.status,
+      type: backup.type as BackupType,
+      status: backup.status as BackupStatus,
       size: backup.size,
       user: user?.name || 'System'
     };
