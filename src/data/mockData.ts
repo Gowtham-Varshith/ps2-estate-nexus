@@ -779,177 +779,169 @@ export const backups: Backup[] = [
   },
 ];
 
-// Add getter functions for the data
+// Add these interfaces to match what components expect
+export interface BillingForDisplay {
+  id: number;
+  date: string;
+  invoiceNumber: string;
+  clientName: string;
+  layoutId: number;
+  plotNumber: string;
+  areaSqft: number;
+  amount: number;
+  ratePerSqft: number;
+  isPaid: boolean;
+  isBlackEntry: boolean;
+  dueDate?: string;
+  notes?: string;
+  paymentType: string;
+  transactions?: any[];
+  clientPhone?: string;
+  clientAddress?: string;
+  clientGSTIN?: string;
+}
+
+export interface ClientForDisplay extends Client {
+  plotsPurchased: number;
+  totalSpent: number;
+  dueAmount: number;
+  status: 'active' | 'pending' | 'inactive';
+}
+
+export interface DocumentForDisplay extends Document {
+  category: string;
+  fileType: string;
+  size: string;
+  uploadDate: string;
+  tags?: string[];
+  layoutId?: number;
+}
+
+export interface ExpenseForDisplay extends Expense {
+  layout: string;
+  addedBy: string;
+}
+
+// Now update the getter functions to transform the data
 
 // Get layouts
 export const getLayouts = () => {
   return layouts;
 };
 
-// Get clients
-export const getClients = () => {
-  return clients;
-};
-
-// Get billings
-export const getBillings = () => {
-  return bills;
-};
-
-// Get expenses
-export const getExpenses = () => {
-  return expenses;
-};
-
-// Get documents
-export const getDocuments = () => {
-  return documents;
-};
-
-// Get activity logs
-export const getActivityLogs = () => {
-  return logs.map(log => {
-    const user = users.find(u => u.id === log.userId);
+// Get clients with additional display properties
+export const getClients = (): ClientForDisplay[] => {
+  return clients.map(client => {
+    // Count plots purchased by this client
+    const clientPlots = plots.filter(plot => plot.clientId === client.id);
+    
+    // Calculate total spent
+    const clientBills = bills.filter(bill => bill.clientId === client.id);
+    const totalSpent = clientBills.reduce((sum, bill) => sum + bill.paidAmount, 0);
+    
+    // Calculate due amount
+    const dueAmount = clientBills.reduce((sum, bill) => sum + bill.dueAmount, 0);
+    
+    // Determine status based on arbitrary criteria
+    let status: 'active' | 'pending' | 'inactive' = 'active';
+    if (dueAmount > 0) status = 'pending';
+    if (clientPlots.length === 0) status = 'inactive';
+    
     return {
-      id: log.id,
-      timestamp: log.timestamp,
-      user: user?.name || "Unknown User",
-      userRole: user?.role || "unknown",
-      action: log.action,
-      actionType: log.action,
-      description: log.details,
-      ipAddress: "192.168.1." + Math.floor(Math.random() * 255)
+      ...client,
+      plotsPurchased: clientPlots.length,
+      totalSpent,
+      dueAmount,
+      status
     };
   });
 };
 
-// Get backup logs
-export const getBackupLogs = () => {
-  return backups.map(backup => {
-    const user = users.find(u => u.id === backup.createdBy);
-    const date = new Date(backup.timestamp).toLocaleDateString();
-    const time = new Date(backup.timestamp).toLocaleTimeString();
-    
-    return {
-      id: backup.id,
-      date,
-      time,
-      type: backup.type,
-      status: backup.status,
-      size: backup.size,
-      user: user?.name || "Unknown"
-    };
-  });
-};
-
-// Get billings by client
-export const getBillingsByClient = (clientId: number) => {
-  return bills.filter(bill => bill.clientId === clientId).map(bill => {
-    const layout = layouts.find(l => {
-      const plot = plots.find(p => p.id === bill.plotId);
-      return plot && l.id === plot.layoutId;
-    });
-    
+// Get billings in format needed for display
+export const getBillings = (): BillingForDisplay[] => {
+  return bills.map(bill => {
     const plot = plots.find(p => p.id === bill.plotId);
+    const client = clients.find(c => c.id === bill.clientId);
+    const layout = plot ? layouts.find(l => l.id === plot.layoutId) : undefined;
     
     return {
       id: bill.id,
       date: bill.createdAt,
       invoiceNumber: `INV-${bill.id.toString().padStart(4, '0')}`,
+      clientName: client?.name || "Unknown Client",
       layoutId: layout?.id || 0,
-      layoutName: layout?.name || "Unknown Layout",
       plotNumber: plot?.plotNo || "Unknown",
       areaSqft: bill.areaInSqft,
-      amount: bill.ledgerType === "white" ? bill.govValue : bill.blackValue || 0,
+      amount: bill.ledgerType === "white" ? bill.govValue : (bill.blackValue || 0),
+      ratePerSqft: bill.areaInSqft > 0 ? 
+        Math.round((bill.ledgerType === "white" ? bill.govValue : (bill.blackValue || 0)) / bill.areaInSqft) : 0,
       isPaid: bill.dueAmount === 0,
-      isBlackEntry: bill.ledgerType === "black"
+      isBlackEntry: bill.ledgerType === "black",
+      paymentType: bill.paymentType,
+      dueDate: bill.dueDate,
+      notes: bill.notes,
+      clientPhone: client?.phone,
+      clientAddress: client?.address,
+      clientGSTIN: client?.email,
+      // Add mock transactions for some bills
+      transactions: bill.id % 3 === 0 ? [
+        {
+          date: bill.createdAt,
+          amount: bill.paidAmount,
+          method: "Bank Transfer",
+          reference: `REF${bill.id}${Math.floor(Math.random() * 10000)}`
+        }
+      ] : []
     };
   });
 };
 
-// Get expenses by client
-export const getExpensesByClient = (clientId: number) => {
-  // Find plots associated with the client
-  const clientPlots = plots.filter(plot => plot.clientId === clientId).map(plot => plot.id);
-  
-  // Return expenses related to those plots
-  return expenses.filter(expense => expense.plotId !== null && clientPlots.includes(expense.plotId)).map(expense => {
-    const plot = plots.find(p => p.id === expense.plotId);
-    const layout = layouts.find(l => l.id === expense.layoutId);
+// Get expenses with formatted data
+export const getExpenses = (): ExpenseForDisplay[] => {
+  return expenses.map(expense => {
+    const plot = expense.plotId ? plots.find(p => p.id === expense.plotId) : null;
+    const layout = expense.layoutId 
+      ? layouts.find(l => l.id === expense.layoutId) 
+      : (plot ? layouts.find(l => l.id === plot.layoutId) : null);
+    const user = users.find(u => u.id === expense.createdBy);
     
     return {
-      id: expense.id,
-      date: expense.date,
-      description: expense.description,
-      amount: expense.amount,
-      type: expense.type,
-      plotNumber: plot?.plotNo || "Unknown",
-      layout: layout?.name || "Unknown Layout",
-      isBlackEntry: expense.visibility === "black" || expense.visibility === "both"
+      ...expense,
+      layout: layout ? layout.name : "General",
+      addedBy: user ? user.name : "Unknown"
     };
   });
 };
 
-// Dashboard statistics
-export const getDashboardStats = (role: UserRole) => {
-  const totalLayouts = layouts.length;
-  const soldPlots = plots.filter(plot => plot.status === "sold").length;
-  const whiteRevenue = bills.filter(bill => bill.ledgerType === "white").reduce((acc, bill) => acc + bill.paidAmount, 0);
-  const duePayments = bills.reduce((acc, bill) => acc + bill.dueAmount, 0);
-  
-  // Black margin is only visible to Black and Admin roles
-  const blackMargin = role === "staff" 
-    ? null 
-    : bills.filter(bill => bill.ledgerType === "black").reduce((acc, bill) => acc + bill.paidAmount, 0) - whiteRevenue;
-  
-  // Get today's date for comparison
-  const today = new Date().toISOString().split('T')[0];
-  const todayBillingCount = bills.filter(bill => bill.createdAt.split('T')[0] === today).length;
-  
-  return {
-    totalLayouts,
-    soldPlots,
-    whiteRevenue,
-    duePayments,
-    blackMargin,
-    todayBillingCount
+// Get documents with additional display properties
+export const getDocuments = (): DocumentForDisplay[] => {
+  const documentCategories: Record<DocumentType, string> = {
+    'layout': 'layout',
+    'plot': 'layout',
+    'client': 'client',
+    'bill': 'billing',
+    'expense': 'expense'
   };
-};
-
-// Get plots sold per layout for chart
-export const getPlotsSoldPerLayout = () => {
-  return layouts.map(layout => {
-    const soldCount = plots.filter(plot => plot.layoutId === layout.id && plot.status === "sold").length;
-    return {
-      layoutName: layout.name,
-      soldCount
-    };
-  });
-};
-
-// Get top performing layouts
-export const getTopPerformingLayouts = () => {
-  const layoutRevenue = layouts.map(layout => {
-    const layoutPlots = plots.filter(plot => plot.layoutId === layout.id);
-    const soldPlots = layoutPlots.filter(plot => plot.status === "sold").length;
-    
-    // Calculate total revenue for this layout
-    const totalRevenue = layoutPlots.reduce((acc, plot) => {
-      if (plot.status === "sold") {
-        return acc + plot.govValue;
-      }
-      return acc;
-    }, 0);
-    
-    return {
-      id: layout.id,
-      name: layout.name,
-      soldPlots,
-      totalPlots: layout.totalPlots,
-      govRevenue: totalRevenue
-    };
-  });
   
-  // Sort by revenue (descending)
-  return layoutRevenue.sort((a, b) => b.govRevenue - a.govRevenue);
-};
+  const fileTypeMap: Record<string, string> = {
+    '.pdf': 'pdf',
+    '.jpg': 'image',
+    '.png': 'image',
+    '.xlsx': 'excel',
+    '.csv': 'excel',
+    '.doc': 'document',
+    '.docx': 'document'
+  };
+  
+  return documents.map(doc => {
+    // Extract file extension from URL
+    const fileExt = doc.fileUrl.substring(doc.fileUrl.lastIndexOf('.')) || '.pdf';
+    const fileType = fileTypeMap[fileExt] || 'document';
+    
+    // Generate random size
+    const size = `${Math.floor(Math.random() * 10) + 1} MB`;
+    
+    // Check if this is associated with a layout
+    let layoutId;
+    if (doc.type === 'layout') {
+      layoutId = doc.related
