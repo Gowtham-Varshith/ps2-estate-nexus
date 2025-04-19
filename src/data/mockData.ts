@@ -852,7 +852,25 @@ export const getClients = (): ClientForDisplay[] => {
       plotsPurchased: clientPlots.length,
       totalSpent,
       dueAmount,
-      status
+      status,
+      properties: clientPlots.map(plot => {
+        const layout = layouts.find(l => l.id === plot.layoutId);
+        return {
+          layoutId: plot.layoutId,
+          layoutName: layout?.name || "Unknown Layout",
+          plotNumber: plot.plotNo,
+          areaSqft: plot.areaInSqft,
+          price: plot.govValue,
+          purchaseDate: new Date(new Date().setMonth(new Date().getMonth() - Math.floor(Math.random() * 12))).toLocaleDateString(),
+          status: plot.status
+        };
+      }),
+      documents: Array(Math.floor(Math.random() * 5)).fill(0).map((_, idx) => ({
+        name: `Document_${client.id}_${idx}.pdf`,
+        type: ['ID Proof', 'Address Proof', 'Plot Deed', 'Agreement', 'Receipt'][Math.floor(Math.random() * 5)],
+        size: `${Math.floor(Math.random() * 10) + 1} MB`,
+        uploadDate: new Date(new Date().setMonth(new Date().getMonth() - Math.floor(Math.random() * 12))).toLocaleDateString()
+      }))
     };
   });
 };
@@ -870,6 +888,7 @@ export const getBillings = (): BillingForDisplay[] => {
       invoiceNumber: `INV-${bill.id.toString().padStart(4, '0')}`,
       clientName: client?.name || "Unknown Client",
       layoutId: layout?.id || 0,
+      layoutName: layout?.name || "Unknown Layout",
       plotNumber: plot?.plotNo || "Unknown",
       areaSqft: bill.areaInSqft,
       amount: bill.ledgerType === "white" ? bill.govValue : (bill.blackValue || 0),
@@ -955,7 +974,192 @@ export const getDocuments = (): DocumentForDisplay[] => {
       fileType,
       size,
       uploadDate: doc.uploadedAt,
-      layoutId
+      layoutId,
+      tags: ['important', 'verified', 'archived', 'draft'].filter(() => Math.random() > 0.7)
     };
   });
+};
+
+// Additional data functions needed by components
+
+// Get plots sold per layout for chart
+export const getPlotsSoldPerLayout = () => {
+  const layoutStats = layouts.map(layout => {
+    const layoutPlots = plots.filter(plot => plot.layoutId === layout.id);
+    const soldPlots = layoutPlots.filter(plot => plot.status === 'sold').length;
+    
+    return {
+      layoutId: layout.id,
+      layoutName: layout.name,
+      soldCount: soldPlots,
+      totalPlots: layoutPlots.length
+    };
+  });
+  
+  return layoutStats;
+};
+
+// Get dashboard stats based on user role
+export const getDashboardStats = (userRole: UserRole) => {
+  // Calculate total layouts
+  const totalLayouts = layouts.length;
+  
+  // Calculate sold plots
+  const soldPlots = plots.filter(plot => plot.status === 'sold').length;
+  
+  // Calculate gov revenue (white ledger)
+  const whiteBills = bills.filter(bill => bill.ledgerType === 'white');
+  const whiteRevenue = whiteBills.reduce((sum, bill) => sum + bill.paidAmount, 0);
+  
+  // Calculate due payments
+  const duePayments = bills.reduce((sum, bill) => sum + bill.dueAmount, 0);
+  
+  // Calculate black margin (only visible to black/admin roles)
+  let blackMargin = null;
+  if (userRole === 'black' || userRole === 'admin') {
+    const blackBills = bills.filter(bill => bill.ledgerType === 'black');
+    blackMargin = blackBills.reduce((sum, bill) => sum + bill.paidAmount, 0);
+  }
+  
+  // Get today's billing count (mock data)
+  const todayBillingCount = bills.filter(bill => {
+    const today = new Date().toISOString().split('T')[0];
+    const billDate = new Date(bill.createdAt).toISOString().split('T')[0];
+    return billDate === today;
+  }).length || 2; // Ensure at least 2 for display purposes
+  
+  return {
+    totalLayouts,
+    soldPlots,
+    whiteRevenue,
+    duePayments,
+    blackMargin,
+    todayBillingCount
+  };
+};
+
+// Get top performing layouts
+export const getTopPerformingLayouts = () => {
+  const layoutPerformance = layouts.map(layout => {
+    const layoutPlots = plots.filter(plot => plot.layoutId === layout.id);
+    const soldPlots = layoutPlots.filter(plot => plot.status === 'sold').length;
+    
+    // Calculate revenue
+    const layoutBills = bills.filter(bill => {
+      const plot = plots.find(p => p.id === bill.plotId);
+      return plot && plot.layoutId === layout.id;
+    });
+    
+    const govRevenue = layoutBills
+      .filter(bill => bill.ledgerType === 'white')
+      .reduce((sum, bill) => sum + bill.paidAmount, 0);
+    
+    return {
+      id: layout.id,
+      name: layout.name,
+      soldPlots,
+      totalPlots: layoutPlots.length,
+      govRevenue,
+      occupancyRate: layoutPlots.length > 0 ? (soldPlots / layoutPlots.length) * 100 : 0
+    };
+  });
+  
+  // Sort by revenue (highest first)
+  return layoutPerformance.sort((a, b) => b.govRevenue - a.govRevenue);
+};
+
+// Get activity logs
+export const getActivityLogs = () => {
+  return logs.map(log => {
+    const user = users.find(u => u.id === log.userId);
+    
+    // Generate a more descriptive action based on resource type and action
+    let action = '';
+    switch (log.action) {
+      case 'created':
+        action = `Created ${log.resourceType}`;
+        break;
+      case 'edited':
+        action = `Updated ${log.resourceType}`;
+        break;
+      case 'deleted':
+        action = `Deleted ${log.resourceType}`;
+        break;
+      case 'viewed':
+        action = `Viewed ${log.resourceType}`;
+        break;
+    }
+    
+    // Generate random IP address for mock data
+    const ipAddress = `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    
+    return {
+      id: log.id,
+      user: user?.name || 'Unknown User',
+      userRole: user?.role || 'unknown',
+      action,
+      actionType: log.action,
+      description: log.details,
+      timestamp: log.timestamp,
+      ipAddress
+    };
+  });
+};
+
+// Get backup logs
+export const getBackupLogs = () => {
+  return backups.map(backup => {
+    const user = users.find(u => u.id === backup.createdBy);
+    
+    return {
+      id: backup.id,
+      date: new Date(backup.timestamp).toLocaleDateString(),
+      time: new Date(backup.timestamp).toLocaleTimeString(),
+      type: backup.type,
+      status: backup.status,
+      size: backup.size,
+      user: user?.name || 'System'
+    };
+  });
+};
+
+// Get billings by client
+export const getBillingsByClient = (clientId: number) => {
+  const clientBillings = getBillings().filter(bill => {
+    const client = clients.find(c => c.id === clientId);
+    return client && bill.clientName === client.name;
+  });
+  
+  return clientBillings;
+};
+
+// Get expenses by client
+export const getExpensesByClient = (clientId: number) => {
+  // For the mock data, we'll create some expenses related to the client
+  const clientPlots = plots.filter(plot => plot.clientId === clientId);
+  const clientExpenses = [];
+  
+  // Add some random expenses for each plot
+  for (const plot of clientPlots) {
+    const layout = layouts.find(l => l.id === plot.layoutId);
+    
+    // Add 1-3 expenses per plot
+    const expenseCount = Math.floor(Math.random() * 3) + 1;
+    
+    for (let i = 0; i < expenseCount; i++) {
+      const isCredit = Math.random() > 0.7;
+      
+      clientExpenses.push({
+        date: new Date(new Date().setMonth(new Date().getMonth() - Math.floor(Math.random() * 6))).toLocaleDateString(),
+        description: isCredit ? 
+          ['Refund', 'Discount', 'Adjustment'][Math.floor(Math.random() * 3)] : 
+          ['Processing Fee', 'Documentation Charge', 'Site Visit Expense', 'Legal Fee'][Math.floor(Math.random() * 4)],
+        layout: layout?.name || 'Unknown',
+        amount: Math.floor(Math.random() * 20000) + 5000,
+        type: isCredit ? 'credit' : 'debit'
+      });
+    }
+  }
+  
+  return clientExpenses;
 };

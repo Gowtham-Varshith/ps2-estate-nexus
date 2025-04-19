@@ -12,10 +12,22 @@ import { getActivityLogs } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
+// Define the ActivityLog interface
+interface ActivityLog {
+  id: number;
+  user: string;
+  userRole: string;
+  action: string;
+  actionType: string;
+  description: string;
+  timestamp: string;
+  ipAddress: string;
+}
+
 const ActivityLogsPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [logs, setLogs] = useState(getActivityLogs());
+  const [logs, setLogs] = useState<ActivityLog[]>(getActivityLogs());
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
@@ -94,10 +106,10 @@ const ActivityLogsPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Actions</SelectItem>
-              <SelectItem value="create">Create</SelectItem>
-              <SelectItem value="edit">Edit</SelectItem>
-              <SelectItem value="delete">Delete</SelectItem>
-              <SelectItem value="view">View</SelectItem>
+              <SelectItem value="created">Create</SelectItem>
+              <SelectItem value="edited">Edit</SelectItem>
+              <SelectItem value="deleted">Delete</SelectItem>
+              <SelectItem value="viewed">View</SelectItem>
             </SelectContent>
           </Select>
           
