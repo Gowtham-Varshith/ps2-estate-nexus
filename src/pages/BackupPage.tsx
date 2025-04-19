@@ -9,12 +9,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Database, Server, Cloud, Download, Upload, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getBackupLogs } from "@/data/mockData";
+import { getBackupLogs, BackupType, BackupStatus } from "@/data/mockData";
+
+interface BackupLog {
+  id: number;
+  date: string;
+  time: string;
+  type: BackupType;
+  status: BackupStatus;
+  size: string;
+  user: string;
+}
 
 const BackupPage = () => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const [backupLogs, setBackupLogs] = useState(getBackupLogs());
+  const [backupLogs, setBackupLogs] = useState<BackupLog[]>(getBackupLogs());
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [backupProgress, setBackupProgress] = useState(0);
   
@@ -22,7 +32,7 @@ const BackupPage = () => {
     document.title = "Backup System | PS2 Estate Nexus";
   }, []);
   
-  const handleTriggerBackup = (type: string) => {
+  const handleTriggerBackup = (type: BackupType) => {
     if (isBackingUp) return;
     
     setIsBackingUp(true);
@@ -38,9 +48,9 @@ const BackupPage = () => {
           setIsBackingUp(false);
           
           // Add a new backup log
-          const newLog = {
+          const newLog: BackupLog = {
             id: backupLogs.length + 1,
-            date: new Date().toISOString(),
+            date: new Date().toLocaleDateString(),
             time: new Date().toLocaleTimeString(),
             type: type,
             status: "success",
@@ -79,7 +89,7 @@ const BackupPage = () => {
   };
   
   // Get status icon based on backup status
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: BackupStatus) => {
     switch (status) {
       case "success":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
