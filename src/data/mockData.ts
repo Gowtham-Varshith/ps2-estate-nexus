@@ -944,4 +944,18 @@ export const getDocuments = (): DocumentForDisplay[] => {
     // Check if this is associated with a layout
     let layoutId;
     if (doc.type === 'layout') {
-      layoutId = doc.related
+      layoutId = doc.relatedId;
+    } else {
+      layoutId = plots.find(p => p.id === doc.relatedId)?.layoutId || null;
+    }
+    
+    return {
+      ...doc,
+      category: documentCategories[doc.type],
+      fileType,
+      size,
+      uploadDate: doc.uploadedAt,
+      layoutId
+    };
+  });
+};
