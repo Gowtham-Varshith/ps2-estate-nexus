@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,8 +12,18 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LayoutsPage from "./pages/LayoutsPage";
 import LayoutDetailPage from "./pages/LayoutDetailPage";
+import CreateLayoutPage from "./pages/CreateLayoutPage";
 import BillingFormPage from "./pages/BillingFormPage";
+import BillingTablePage from "./pages/BillingTablePage";
+import BillingDetailPage from "./pages/BillingDetailPage";
+import ExpensesPage from "./pages/ExpensesPage";
+import CreateExpensePage from "./pages/CreateExpensePage";
+import ClientsPage from "./pages/ClientsPage";
+import ClientDetailPage from "./pages/ClientDetailPage";
+import DocumentsPage from "./pages/DocumentsPage";
 import AISearchPage from "./pages/AISearchPage";
+import BackupPage from "./pages/BackupPage";
+import ActivityLogsPage from "./pages/ActivityLogsPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -60,28 +71,6 @@ const App = () => (
               } 
             />
             
-            {/* Billing routes */}
-            <Route 
-              path="/billing/new" 
-              element={
-                <ProtectedRoute>
-                  <BillingFormPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* AI Search route */}
-            <Route 
-              path="/ai-search" 
-              element={
-                <ProtectedRoute>
-                  <AISearchPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* TODO: Add routes for other pages as they are created */}
-            {/*
             <Route 
               path="/layouts/new" 
               element={
@@ -91,11 +80,21 @@ const App = () => (
               } 
             />
             
+            {/* Billing routes */}
             <Route 
               path="/billing" 
               element={
                 <ProtectedRoute>
                   <BillingTablePage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/billing/new" 
+              element={
+                <ProtectedRoute>
+                  <BillingFormPage />
                 </ProtectedRoute>
               } 
             />
@@ -109,6 +108,7 @@ const App = () => (
               } 
             />
             
+            {/* Expense routes */}
             <Route 
               path="/expenses" 
               element={
@@ -127,6 +127,7 @@ const App = () => (
               } 
             />
             
+            {/* Client routes */}
             <Route 
               path="/clients" 
               element={
@@ -145,6 +146,7 @@ const App = () => (
               } 
             />
             
+            {/* Document routes */}
             <Route 
               path="/documents" 
               element={
@@ -154,6 +156,7 @@ const App = () => (
               } 
             />
             
+            {/* AI Search route */}
             <Route 
               path="/ai-search" 
               element={
@@ -163,6 +166,7 @@ const App = () => (
               } 
             />
             
+            {/* Backup route */}
             <Route 
               path="/backup" 
               element={
@@ -172,6 +176,7 @@ const App = () => (
               } 
             />
             
+            {/* Activity Logs route - Admin only */}
             <Route 
               path="/logs" 
               element={
@@ -180,7 +185,6 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            */}
             
             {/* Catch all route - 404 */}
             <Route path="*" element={<NotFound />} />
