@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layouts/MainLayout";
@@ -31,8 +30,8 @@ const CreateLayoutPage = () => {
   useEffect(() => {
     document.title = "Create Layout | PS2 Estate Nexus";
     
-    // Redirect users without permission
-    if (currentUser && !["black", "admin"].includes(currentUser.role)) {
+    // Update permissions to include staff
+    if (currentUser && !["staff", "black", "admin"].includes(currentUser.role)) {
       navigate("/layouts");
       toast({
         title: "Access Denied",
