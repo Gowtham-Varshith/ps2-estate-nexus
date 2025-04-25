@@ -1,5 +1,5 @@
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "./Sidebar";
@@ -7,8 +7,19 @@ import {
   Menu, 
   Bell, 
   ChevronDown,
-  LogOut
+  LogOut,
+  Search,
+  Send,
+  X
 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { NotificationItem } from "@/types/backupTypes";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -16,6 +27,43 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children }: MainLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<null | { clients: number, layouts: number, expenses: number }>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 1,
+      title: "Tea expense pending confirmation",
+      description: "₹250 expense for tea needs your approval",
+      date: "2025-04-25",
+      read: false,
+      type: "warning"
+    },
+    {
+      id: 2,
+      title: "Layout PS2 client report ready",
+      description: "Monthly client report is ready for review",
+      date: "2025-04-24",
+      read: false,
+      type: "info",
+      action: {
+        label: "View Report",
+        url: "/reports/layout/ps2"
+      }
+    },
+    {
+      id: 3,
+      title: "New plot sale completed",
+      description: "Plot GV003 in PS2 layout has been sold",
+      date: "2025-04-23",
+      read: true,
+      type: "success"
+    }
+  ]);
+  
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -36,7 +84,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   );
   
   // Update time every minute
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(
         new Date().toLocaleTimeString('en-US', {
@@ -47,7 +95,52 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     }, 60000);
     
     return () => clearInterval(interval);
-  });
+  }, []);
+  
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery) return;
+    
+    setIsSearching(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Dummy results
+      setSearchResults({
+        clients: 5,
+        layouts: 3,
+        expenses: 2
+      });
+      setIsSearching(false);
+    }, 800);
+  };
+  
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults(null);
+  };
+  
+  // Handle WhatsApp send
+  const handleWhatsAppSend = (notification: NotificationItem) => {
+    setSelectedNotification(notification);
+    setWhatsappDialogOpen(true);
+  };
+  
+  // Send WhatsApp message
+  const sendWhatsAppMessage = () => {
+    // Simulate sending
+    toast.success("WhatsApp message sent successfully");
+    setWhatsappDialogOpen(false);
+    
+    // Mark notification as read
+    if (selectedNotification) {
+      setNotifications(prev => 
+        prev.map(n => n.id === selectedNotification.id ? {...n, read: true} : n)
+      );
+    }
+  };
   
   // Get role style
   const getRoleStyle = () => {
@@ -67,6 +160,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     logout();
     navigate("/login");
   };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -88,6 +183,50 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <h1 className="ml-4 text-xl font-semibold text-gray-800">PS2 Estate Nexus</h1>
             </div>
             
+            {/* Search Bar - Center */}
+            <div className="hidden md:flex flex-1 justify-center max-w-2xl mx-4">
+              <form onSubmit={handleSearch} className="w-full relative">
+                <div className="relative flex items-center w-full">
+                  <Search className="absolute left-3 text-gray-400" size={18} />
+                  <Input
+                    type="text"
+                    placeholder="Search anything or ask questions (e.g., 'Show expenses for PS2')"
+                    className="pl-10 pr-10 py-2 w-full focus:border-ps2-primary"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button 
+                      type="button"
+                      onClick={clearSearch}
+                      className="absolute right-3 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Search Results */}
+                {searchResults && (
+                  <div className="absolute mt-1 w-full bg-white rounded-md shadow-lg p-3 z-50 border border-gray-200">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Results for: <span className="text-ps2-primary">{searchQuery}</span></div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Badge variant="outline" className="bg-blue-50">
+                        {searchResults.clients} Clients
+                      </Badge>
+                      <Badge variant="outline" className="bg-green-50">
+                        {searchResults.layouts} Layouts
+                      </Badge>
+                      <Badge variant="outline" className="bg-amber-50">
+                        {searchResults.expenses} Expense Categories
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">Press Enter to view detailed results</div>
+                  </div>
+                )}
+              </form>
+            </div>
+            
             <div className="flex items-center">
               {/* Date and Time */}
               <div className="hidden md:flex flex-col items-end mr-6">
@@ -96,13 +235,68 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               </div>
               
               {/* Notifications */}
-              <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ps2-primary relative">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ps2-danger opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-ps2-danger"></span>
-                </span>
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setNotificationsOpen(!notificationsOpen)} 
+                  className="p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ps2-primary relative"
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ps2-danger opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-ps2-danger"></span>
+                    </span>
+                  )}
+                </button>
+                
+                {/* Notification Panel */}
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200 max-h-96 overflow-y-auto">
+                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                      <h3 className="font-medium text-gray-700">Notifications</h3>
+                      <Badge variant={unreadCount > 0 ? "info" : "outline"} className="text-xs">
+                        {unreadCount} Unread
+                      </Badge>
+                    </div>
+                    
+                    <div>
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id}
+                          className={`p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                            !notification.read ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-800">{notification.title}</h4>
+                              <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
+                              <div className="text-xs text-gray-400 mt-2">
+                                {new Date(notification.date).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-xs ml-2 mt-1"
+                              onClick={() => handleWhatsAppSend(notification)}
+                            >
+                              <Send size={12} className="mr-1" />
+                              WhatsApp
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {notifications.length === 0 && (
+                        <div className="p-6 text-center text-gray-500">
+                          <p>No notifications</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {/* User Profile */}
               <div className="relative ml-3">
@@ -141,6 +335,45 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           {children}
         </main>
       </div>
+      
+      {/* WhatsApp Dialog */}
+      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send WhatsApp Message</DialogTitle>
+            <DialogDescription>
+              {selectedNotification?.title}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-500">Recipient</div>
+                  <div className="text-sm">Suresh (Client)</div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Textarea 
+              placeholder="Type your message..."
+              className="min-h-[100px]"
+              defaultValue={`Regarding ${selectedNotification?.title?.toLowerCase()}. Please confirm this transaction at your earliest convenience.`}
+            />
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setWhatsappDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={sendWhatsAppMessage} className="bg-green-600 hover:bg-green-700">
+                <Send size={16} className="mr-2" />
+                Send Message
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
