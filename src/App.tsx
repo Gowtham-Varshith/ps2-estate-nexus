@@ -24,6 +24,11 @@ import DocumentsPage from "./pages/DocumentsPage";
 import AISearchPage from "./pages/AISearchPage";
 import BackupPage from "./pages/BackupPage";
 import ActivityLogsPage from "./pages/ActivityLogsPage";
+import InfoManagementPage from "./pages/InfoManagementPage";
+import InfoDetailPage from "./pages/InfoDetailPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import SettingsPage from "./pages/SettingsPage";
+import PlotDetailPage from "./pages/PlotDetailPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -74,8 +79,18 @@ const App = () => (
             <Route 
               path="/layouts/new" 
               element={
-                <ProtectedRoute allowedRoles={["black", "admin"]}>
+                <ProtectedRoute allowedRoles={["staff", "black", "admin"]}>
                   <CreateLayoutPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Plot routes */}
+            <Route 
+              path="/plots/:id" 
+              element={
+                <ProtectedRoute>
+                  <PlotDetailPage />
                 </ProtectedRoute>
               } 
             />
@@ -127,23 +142,34 @@ const App = () => (
               } 
             />
             
-            {/* Client routes */}
+            {/* Info Management routes (replacing Client routes) */}
             <Route 
-              path="/clients" 
+              path="/info" 
               element={
                 <ProtectedRoute>
-                  <ClientsPage />
+                  <InfoManagementPage />
                 </ProtectedRoute>
               } 
             />
             
             <Route 
-              path="/clients/:id" 
+              path="/info/:id" 
               element={
                 <ProtectedRoute>
-                  <ClientDetailPage />
+                  <InfoDetailPage />
                 </ProtectedRoute>
               } 
+            />
+            
+            {/* For backward compatibility */}
+            <Route 
+              path="/clients" 
+              element={<Navigate to="/info" replace />} 
+            />
+            
+            <Route 
+              path="/clients/:id" 
+              element={<Navigate to={location => `/info/${location.pathname.split('/').pop()}`} replace />} 
             />
             
             {/* Document routes */}
@@ -162,6 +188,26 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AISearchPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Notifications route */}
+            <Route 
+              path="/notifications" 
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Settings route */}
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute allowedRoles={["black", "admin"]}>
+                  <SettingsPage />
                 </ProtectedRoute>
               } 
             />

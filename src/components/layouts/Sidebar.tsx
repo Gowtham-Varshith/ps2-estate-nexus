@@ -12,7 +12,11 @@ import {
   FolderArchive, 
   Search, 
   Database, 
-  FileClock 
+  FileClock,
+  MessageSquare,
+  Settings,
+  Sparkles,
+  BellDot
 } from "lucide-react";
 
 interface SidebarProps {
@@ -50,15 +54,9 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
       roles: ["staff", "black", "admin"],
     },
     {
-      title: "Reports",
-      icon: <PieChart size={20} />,
-      path: "/reports",
-      roles: ["black", "admin"],
-    },
-    {
-      title: "Clients",
+      title: "Info Management",
       icon: <Users size={20} />,
-      path: "/clients",
+      path: "/info",
       roles: ["staff", "black", "admin"],
     },
     {
@@ -68,10 +66,22 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
       roles: ["staff", "black", "admin"],
     },
     {
-      title: "AI Search",
-      icon: <Search size={20} />,
+      title: "AI Assistant",
+      icon: <Sparkles size={20} />,
       path: "/ai-search",
       roles: ["staff", "black", "admin"],
+    },
+    {
+      title: "Notifications",
+      icon: <BellDot size={20} />,
+      path: "/notifications",
+      roles: ["staff", "black", "admin"],
+    },
+    {
+      title: "Reports",
+      icon: <PieChart size={20} />,
+      path: "/reports",
+      roles: ["black", "admin"],
     },
     {
       title: "Backup",
@@ -84,6 +94,12 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
       icon: <FileClock size={20} />,
       path: "/logs",
       roles: ["admin"],
+    },
+    {
+      title: "Settings",
+      icon: <Settings size={20} />,
+      path: "/settings",
+      roles: ["black", "admin"],
     },
   ];
   

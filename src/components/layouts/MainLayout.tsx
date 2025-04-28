@@ -10,7 +10,13 @@ import {
   LogOut,
   Search,
   Send,
-  X
+  X,
+  Loader,
+  Sparkles,
+  Languages,
+  FileText,
+  Download,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { NotificationItem } from "@/types/backupTypes";
+import { NotificationItem, AISearchResult } from "@/types/backupTypes";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -28,11 +34,13 @@ interface MainLayoutProps {
 const MainLayout = ({ children }: MainLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<null | { clients: number, layouts: number, expenses: number }>(null);
+  const [searchResults, setSearchResults] = useState<AISearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [languageOptions, setLanguageOptions] = useState<string[]>(["English", "Telugu", "Hindi", "Kannada"]);
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 1,
@@ -61,6 +69,22 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       date: "2025-04-23",
       read: true,
       type: "success"
+    },
+    {
+      id: 4,
+      title: "Bill payment due tomorrow",
+      description: "Reminder for Ravi's payment of ₹25,000",
+      date: "2025-04-26",
+      read: false,
+      type: "warning"
+    },
+    {
+      id: 5,
+      title: "Staff payment pending",
+      description: "Monthly salary for Venkat is due",
+      date: "2025-04-22",
+      read: true,
+      type: "error"
     }
   ]);
   
@@ -104,14 +128,69 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     
     setIsSearching(true);
     
-    // Simulate API call
+    // Simulate API call to /api/search?query=...
     setTimeout(() => {
-      // Dummy results
-      setSearchResults({
-        clients: 5,
-        layouts: 3,
-        expenses: 2
-      });
+      // Dummy results based on search query
+      if (searchQuery.toLowerCase().includes("expense") || searchQuery.toLowerCase().includes("ps2")) {
+        setSearchResults({
+          query: searchQuery,
+          results: [
+            {
+              type: 'expense',
+              count: 12,
+              items: [
+                { id: 1, name: "Tea Expenses", amount: 1200, date: "2025-04-21" },
+                { id: 2, name: "Labour", amount: 12000, date: "2025-04-20" }
+              ]
+            },
+            {
+              type: 'layout',
+              count: 1,
+              items: [
+                { id: 1, name: "PS2 Layout", location: "Guntur" }
+              ]
+            }
+          ],
+          suggestion: "Try searching for 'Show all expenses for PS2 in April'",
+          totalMatches: 13
+        });
+      } else if (searchQuery.toLowerCase().includes("client") || searchQuery.toLowerCase().includes("plot")) {
+        setSearchResults({
+          query: searchQuery,
+          results: [
+            {
+              type: 'client',
+              count: 5,
+              items: [
+                { id: 1, name: "Ramesh Kumar", phone: "9876543210" },
+                { id: 2, name: "Suresh Reddy", phone: "8765432109" }
+              ]
+            },
+            {
+              type: 'plot',
+              count: 8,
+              items: [
+                { id: 1, name: "GV001", layout: "PS2", status: "Available" },
+                { id: 2, name: "GV002", layout: "PS2", status: "Sold" }
+              ]
+            }
+          ],
+          suggestion: "Try 'Show all clients who purchased plots in PS2'",
+          totalMatches: 13
+        });
+      } else {
+        setSearchResults({
+          query: searchQuery,
+          results: [
+            { type: 'client', count: 3 },
+            { type: 'layout', count: 2 },
+            { type: 'expense', count: 5 },
+            { type: 'bill', count: 4 }
+          ],
+          suggestion: "Try being more specific with your search",
+          totalMatches: 14
+        });
+      }
       setIsSearching(false);
     }, 800);
   };
@@ -130,8 +209,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   
   // Send WhatsApp message
   const sendWhatsAppMessage = () => {
-    // Simulate sending
-    toast.success("WhatsApp message sent successfully");
+    // Simulate sending API call to /api/whatsapp/send
+    toast.success(`WhatsApp message sent successfully in ${selectedLanguage}`);
     setWhatsappDialogOpen(false);
     
     // Mark notification as read
@@ -163,6 +242,14 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const handleViewDetailed = () => {
+    if (searchResults) {
+      // Simulate navigation to AI search results page
+      navigate(`/ai-search?query=${encodeURIComponent(searchQuery)}`);
+      clearSearch();
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -183,15 +270,19 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <h1 className="ml-4 text-xl font-semibold text-gray-800">PS2 Estate Nexus</h1>
             </div>
             
-            {/* Search Bar - Center */}
-            <div className="hidden md:flex flex-1 justify-center max-w-2xl mx-4">
+            {/* AI-powered Search Bar - Center */}
+            <div className="hidden md:flex flex-1 justify-center max-w-3xl mx-4">
               <form onSubmit={handleSearch} className="w-full relative">
                 <div className="relative flex items-center w-full">
-                  <Search className="absolute left-3 text-gray-400" size={18} />
+                  {isSearching ? (
+                    <Loader className="absolute left-3 text-blue-500 animate-spin" size={18} />
+                  ) : (
+                    <Sparkles className="absolute left-3 text-blue-500" size={18} />
+                  )}
                   <Input
                     type="text"
-                    placeholder="Search anything or ask questions (e.g., 'Show expenses for PS2')"
-                    className="pl-10 pr-10 py-2 w-full focus:border-ps2-primary"
+                    placeholder="Ask anything or search (e.g., 'Show expenses for PS2')"
+                    className="pl-10 pr-10 py-2 w-full focus:border-blue-500 border-blue-200"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -206,22 +297,54 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                   )}
                 </div>
                 
-                {/* Search Results */}
+                {/* AI Search Results */}
                 {searchResults && (
-                  <div className="absolute mt-1 w-full bg-white rounded-md shadow-lg p-3 z-50 border border-gray-200">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Results for: <span className="text-ps2-primary">{searchQuery}</span></div>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                  <div className="absolute mt-1 w-full bg-white rounded-md shadow-lg p-4 z-50 border border-gray-200">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="text-sm font-medium text-gray-700">Results for: <span className="text-blue-600">{searchResults.query}</span></div>
                       <Badge variant="outline" className="bg-blue-50">
-                        {searchResults.clients} Clients
-                      </Badge>
-                      <Badge variant="outline" className="bg-green-50">
-                        {searchResults.layouts} Layouts
-                      </Badge>
-                      <Badge variant="outline" className="bg-amber-50">
-                        {searchResults.expenses} Expense Categories
+                        {searchResults.totalMatches} matches
                       </Badge>
                     </div>
-                    <div className="text-xs text-gray-500 mt-2">Press Enter to view detailed results</div>
+                    
+                    <div className="space-y-4">
+                      {searchResults.results.map((result, idx) => (
+                        <div key={idx} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-semibold capitalize">{result.type}s</h4>
+                            <Badge variant="outline" className="text-xs">{result.count}</Badge>
+                          </div>
+                          
+                          {result.items && (
+                            <div className="space-y-2">
+                              {result.items.slice(0, 2).map((item, i) => (
+                                <div key={i} className="text-xs bg-gray-50 rounded p-2 flex justify-between">
+                                  <span>{item.name}</span>
+                                  {item.amount && <span className="font-medium">₹{item.amount.toLocaleString()}</span>}
+                                  {item.status && <span className={`font-medium ${item.status === 'Sold' ? 'text-green-600' : 'text-blue-600'}`}>{item.status}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {searchResults.suggestion && (
+                      <div className="mt-3 text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                        <span className="font-medium">Suggestion:</span> {searchResults.suggestion}
+                      </div>
+                    )}
+                    
+                    <div className="mt-3 flex justify-end">
+                      <Button 
+                        size="sm" 
+                        onClick={handleViewDetailed}
+                        className="text-xs"
+                      >
+                        View Detailed Results
+                      </Button>
+                    </div>
                   </div>
                 )}
               </form>
@@ -251,9 +374,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 
                 {/* Notification Panel */}
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200 max-h-96 overflow-y-auto">
-                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                      <h3 className="font-medium text-gray-700">Notifications</h3>
+                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200 max-h-[80vh] overflow-y-auto">
+                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center sticky top-0">
+                      <h3 className="font-medium text-gray-700">Notifications Center</h3>
                       <Badge variant={unreadCount > 0 ? "info" : "outline"} className="text-xs">
                         {unreadCount} Unread
                       </Badge>
@@ -263,26 +386,41 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                       {notifications.map((notification) => (
                         <div 
                           key={notification.id}
-                          className={`p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                             !notification.read ? 'bg-blue-50' : ''
                           }`}
                         >
                           <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-800">{notification.title}</h4>
+                            <div className="flex-grow">
+                              <h4 className="text-sm font-medium text-gray-800 flex items-center">
+                                {notification.title}
+                                {!notification.read && (
+                                  <Badge variant="default" className="ml-2 bg-blue-500 text-[10px]">NEW</Badge>
+                                )}
+                              </h4>
                               <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
                               <div className="text-xs text-gray-400 mt-2">
                                 {new Date(notification.date).toLocaleDateString()}
                               </div>
+                              
+                              {notification.action && (
+                                <a 
+                                  href={notification.action.url} 
+                                  className="text-xs text-blue-600 hover:underline mt-2 inline-flex items-center"
+                                >
+                                  {notification.action.label}
+                                  <ExternalLink size={12} className="ml-1" />
+                                </a>
+                              )}
                             </div>
                             <Button 
                               size="sm" 
                               variant="outline"
-                              className="text-xs ml-2 mt-1"
+                              className="text-xs ml-2 mt-1 whitespace-nowrap"
                               onClick={() => handleWhatsAppSend(notification)}
                             >
                               <Send size={12} className="mr-1" />
-                              WhatsApp
+                              Send Reminder
                             </Button>
                           </div>
                         </div>
@@ -293,6 +431,17 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                           <p>No notifications</p>
                         </div>
                       )}
+                    </div>
+                    
+                    <div className="p-3 bg-gray-50 border-t border-gray-200 sticky bottom-0">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="w-full text-xs"
+                        onClick={() => navigate('/notifications')}
+                      >
+                        View All Notifications
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -340,7 +489,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Send WhatsApp Message</DialogTitle>
+            <DialogTitle>Send WhatsApp Reminder</DialogTitle>
             <DialogDescription>
               {selectedNotification?.title}
             </DialogDescription>
@@ -356,11 +505,50 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               </CardContent>
             </Card>
             
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label htmlFor="language" className="text-sm font-medium text-gray-700">Message Language</label>
+                <div className="flex items-center text-xs text-gray-500">
+                  <Languages size={14} className="mr-1" />
+                  Auto-detected based on location
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {languageOptions.map(lang => (
+                  <Badge 
+                    key={lang} 
+                    variant={selectedLanguage === lang ? "default" : "outline"}
+                    className={`cursor-pointer ${selectedLanguage === lang ? 'bg-blue-500' : ''}`}
+                    onClick={() => setSelectedLanguage(lang)}
+                  >
+                    {lang}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
             <Textarea 
               placeholder="Type your message..."
-              className="min-h-[100px]"
-              defaultValue={`Regarding ${selectedNotification?.title?.toLowerCase()}. Please confirm this transaction at your earliest convenience.`}
+              className="min-h-[120px]"
+              defaultValue={`Regarding ${selectedNotification?.title?.toLowerCase()}. ${selectedNotification?.description} Please confirm at your earliest convenience.`}
             />
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-gray-500" />
+                <span className="text-sm font-medium">Attach Documents</span>
+              </div>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="cursor-pointer flex items-center gap-1">
+                  <Download size={12} />
+                  Brochure
+                </Badge>
+                <Badge variant="outline" className="cursor-pointer flex items-center gap-1">
+                  <Download size={12} />
+                  Payment Details
+                </Badge>
+              </div>
+            </div>
             
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setWhatsappDialogOpen(false)}>
