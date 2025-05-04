@@ -47,6 +47,19 @@ interface PlotDocument {
   uploadDate: string;
 }
 
+interface NotificationItem {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  read: boolean;
+  type: "info" | "warning" | "error" | "success";
+  action?: {
+    label: string;
+    url: string;
+  };
+}
+
 const PlotDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
@@ -651,7 +664,7 @@ const PlotDetailPage = () => {
                 className="resize-none"
               />
               <p className="text-xs text-gray-500">
-                Template available: {{`{{plotNumber}}, {{layoutName}}, {{area}}, {{areaUnit}}`}}
+                Template available: {"{plotNumber}, {layoutName}, {area}, {areaUnit}"}
               </p>
             </div>
             
