@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronsUpDown, DollarSign, Clock, Calendar, Save, X } from "lucide-react";
+import { Check, ChevronsUpDown, DollarSign, Clock, Calendar, Save, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Mock data for common expense descriptions
@@ -67,12 +67,16 @@ const CreateExpensePage = () => {
     amount: "",
     date: "",
     layout: "",
-    notes: ""
+    notes: "",
+    govPrice: "",
+    marketPrice: ""
   });
   
   const [customCategory, setCustomCategory] = useState(false);
   const [openCombobox, setOpenCombobox] = useState(false);
   const [similarExpenses, setSimilarExpenses] = useState<{description: string; date: string; amount: number}[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Set current date as default
   useEffect(() => {
@@ -176,6 +180,16 @@ const CreateExpensePage = () => {
       setFormData({ ...formData, category, description: category });
     }
   };
+  
+  // Handle category search
+  const handleCategorySearch = (query: string) => {
+    setSearchQuery(query);
+    setIsSearching(true);
+  };
+  
+  const filteredCategories = expenseCategories.filter(
+    category => category.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <MainLayout>
@@ -197,40 +211,84 @@ const CreateExpensePage = () => {
               <div className="space-y-2">
                 <Label htmlFor="category">Expense Category</Label>
                 {!customCategory ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {expenseCategories.map((category) => (
-                      <div
-                        key={category.label}
-                        className={cn(
-                          "flex items-center justify-center p-2 rounded-md border cursor-pointer transition-colors",
-                          formData.category === category.label
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:bg-gray-50"
-                        )}
-                        onClick={() => handleCategorySelect(category.label)}
-                      >
-                        <div className="text-center">
-                          <Badge variant="outline" className={category.color}>
-                            {category.label}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex flex-col space-y-4">
+                    <Popover open={isSearching} onOpenChange={setIsSearching}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between"
+                        >
+                          {formData.category || "Search for a category..."}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Search categories..." 
+                            value={searchQuery}
+                            onValueChange={handleCategorySearch}
+                          />
+                          <CommandEmpty>No categories found</CommandEmpty>
+                          <CommandGroup>
+                            {filteredCategories.map((category) => (
+                              <CommandItem
+                                key={category.label}
+                                value={category.label}
+                                onSelect={(value) => {
+                                  handleCategorySelect(value);
+                                  setIsSearching(false);
+                                }}
+                              >
+                                <Badge variant="outline" className={category.color}>
+                                  {category.label}
+                                </Badge>
+                                <Check
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    formData.category === category.label 
+                                      ? "opacity-100" 
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                            <CommandItem
+                              value="custom"
+                              onSelect={() => {
+                                handleCategorySelect("custom");
+                                setIsSearching(false);
+                              }}
+                            >
+                              <Badge variant="outline" className="bg-gray-100 text-gray-800">
+                                Custom
+                              </Badge>
+                            </CommandItem>
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     
-                    <div
-                      className={cn(
-                        "flex items-center justify-center p-2 rounded-md border cursor-pointer transition-colors",
-                        customCategory
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      )}
-                      onClick={() => handleCategorySelect("custom")}
-                    >
-                      <div className="text-center">
-                        <Badge variant="outline" className="bg-gray-100 text-gray-800">
-                          Custom
-                        </Badge>
-                      </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {expenseCategories.slice(0, 8).map((category) => (
+                        <div
+                          key={category.label}
+                          className={cn(
+                            "flex items-center justify-center p-2 rounded-md border cursor-pointer transition-colors",
+                            formData.category === category.label
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 hover:bg-gray-50"
+                          )}
+                          onClick={() => handleCategorySelect(category.label)}
+                        >
+                          <div className="text-center">
+                            <Badge variant="outline" className={category.color}>
+                              {category.label}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : (
@@ -313,6 +371,40 @@ const CreateExpensePage = () => {
                 </p>
               </div>
               
+              {/* Prices */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="govPrice">Government Price (₹)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      id="govPrice"
+                      name="govPrice"
+                      type="number"
+                      value={formData.govPrice}
+                      onChange={handleInputChange}
+                      placeholder="Enter gov price"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="marketPrice">Market Price (₹)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                      id="marketPrice"
+                      name="marketPrice"
+                      type="number"
+                      value={formData.marketPrice}
+                      onChange={handleInputChange}
+                      placeholder="Enter market price"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+              
               {/* Amount */}
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (₹)</Label>
@@ -357,7 +449,7 @@ const CreateExpensePage = () => {
                       <SelectValue placeholder="Select layout..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {layouts.map((layout) => (
                         <SelectItem key={layout} value={layout}>
                           {layout}

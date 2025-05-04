@@ -20,11 +20,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { layouts } from "@/data/mockData";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 
 interface ExpenseFormModalProps {
   isOpen: boolean;
@@ -41,10 +48,16 @@ const ExpenseFormModal = ({ isOpen, onClose, onSubmit }: ExpenseFormModalProps) 
     visibility: "white",
     amount: "",
     reason: "",
+    govPrice: "",
+    marketPrice: "",
+    isBlack: false
   });
   
   const [selectedLayout, setSelectedLayout] = useState<any>(null);
   const [selectedPlot, setSelectedPlot] = useState<any>(null);
+  const [plotSearchOpen, setPlotSearchOpen] = useState(false);
+  const [plotSearchQuery, setPlotSearchQuery] = useState("");
+  const [availablePlots, setAvailablePlots] = useState<Array<{id: string, name: string}>>([]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -59,6 +72,22 @@ const ExpenseFormModal = ({ isOpen, onClose, onSubmit }: ExpenseFormModalProps) 
       setSelectedLayout(layout);
       setFormData(prev => ({ ...prev, plotNo: "" }));
       setSelectedPlot(null);
+      
+      // Generate some mock plots for search
+      if (layout) {
+        const mockPlots = Array.from({ length: 10 }, (_, i) => ({
+          id: `${i + 1}`,
+          name: `${layout.name.substring(0, 2).toUpperCase()}${(i + 1).toString().padStart(3, '0')}`
+        }));
+        setAvailablePlots(mockPlots);
+      }
+    }
+    
+    if (name === "visibility") {
+      setFormData(prev => ({ 
+        ...prev, 
+        isBlack: value === "black"
+      }));
     }
   };
   
@@ -82,21 +111,29 @@ const ExpenseFormModal = ({ isOpen, onClose, onSubmit }: ExpenseFormModalProps) 
       visibility: "white",
       amount: "",
       reason: "",
+      govPrice: "",
+      marketPrice: "",
+      isBlack: false
     });
     setDate(new Date());
     setSelectedLayout(null);
     setSelectedPlot(null);
   };
   
-  const handlePlotSelect = (plotNo: string) => {
+  const handlePlotSelect = (plotId: string, plotName: string) => {
     const mockPlot = {
-      plotNumber: plotNo,
+      plotNumber: plotName,
       areaSqft: "1200"
     };
     
     setSelectedPlot(mockPlot);
-    setFormData(prev => ({ ...prev, plotNo }));
+    setFormData(prev => ({ ...prev, plotNo: plotName }));
+    setPlotSearchOpen(false);
   };
+  
+  const filteredPlots = availablePlots.filter(plot => 
+    plot.name.toLowerCase().includes(plotSearchQuery.toLowerCase())
+  );
   
   const isFormValid = () => {
     return (
@@ -141,25 +178,41 @@ const ExpenseFormModal = ({ isOpen, onClose, onSubmit }: ExpenseFormModalProps) 
           
           <div className="space-y-2">
             <Label htmlFor="plotNo">Plot Number</Label>
-            <Select
-              value={formData.plotNo}
-              onValueChange={(value) => handlePlotSelect(value)}
-              disabled={!selectedLayout}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={selectedLayout ? "Select a plot" : "Select a layout first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedLayout && Array.from({ length: 5 }, (_, i) => (
-                  <SelectItem 
-                    key={i} 
-                    value={`${selectedLayout.name.substring(0, 2).toUpperCase()}${(i + 1).toString().padStart(3, '0')}`}
+            <div className="flex items-center gap-2">
+              <Popover open={plotSearchOpen} onOpenChange={setPlotSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    role="combobox"
+                    disabled={!selectedLayout}
+                    className="w-full justify-between"
                   >
-                    {`${selectedLayout.name.substring(0, 2).toUpperCase()}${(i + 1).toString().padStart(3, '0')}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    {formData.plotNo ? formData.plotNo : selectedLayout ? "Search plots..." : "Select a layout first"}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search plot number..."
+                      value={plotSearchQuery}
+                      onValueChange={setPlotSearchQuery}
+                    />
+                    <CommandEmpty>No plots found</CommandEmpty>
+                    <CommandGroup>
+                      {filteredPlots.map((plot) => (
+                        <CommandItem
+                          key={plot.id}
+                          onSelect={() => handlePlotSelect(plot.id, plot.name)}
+                        >
+                          {plot.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           
           {selectedLayout && selectedPlot && (
@@ -216,6 +269,30 @@ const ExpenseFormModal = ({ isOpen, onClose, onSubmit }: ExpenseFormModalProps) 
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="govPrice">Gov Price (₹)</Label>
+            <Input
+              id="govPrice"
+              name="govPrice"
+              type="number"
+              value={formData.govPrice}
+              onChange={handleInputChange}
+              placeholder="Enter gov price"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="marketPrice">Market Price (₹)</Label>
+            <Input
+              id="marketPrice"
+              name="marketPrice"
+              type="number"
+              value={formData.marketPrice}
+              onChange={handleInputChange}
+              placeholder="Enter market price"
+            />
           </div>
           
           <div className="space-y-2">
