@@ -18,6 +18,8 @@ import {
   Sparkles,
   BellDot
 } from "lucide-react";
+import MetricSelector from "@/components/common/MetricSelector";
+import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -76,6 +78,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
       icon: <BellDot size={20} />,
       path: "/notifications",
       roles: ["staff", "black", "admin"],
+      badge: 3,
     },
     {
       title: "Reports",
@@ -110,7 +113,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
 
   return (
     <aside
-      className={`bg-white shadow-md z-20 transition-all duration-300 ${
+      className={`bg-white shadow-md z-20 transition-all duration-300 flex flex-col h-screen ${
         isOpen ? "w-64" : "w-20"
       } border-r border-gray-200`}
     >
@@ -124,7 +127,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
       </div>
       
       {/* Navigation Links */}
-      <nav className="mt-6">
+      <nav className="mt-6 flex-grow overflow-y-auto">
         <ul>
           {filteredNavItems.map((item) => {
             const isActive = location.pathname.startsWith(item.path);
@@ -140,13 +143,28 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
                   }`}
                 >
                   <span className="mr-3">{item.icon}</span>
-                  {isOpen && <span>{item.title}</span>}
+                  {isOpen && (
+                    <div className="flex justify-between items-center w-full">
+                      <span>{item.title}</span>
+                      {item.badge && (
+                        <Badge className="ml-2 bg-red-500">{item.badge}</Badge>
+                      )}
+                    </div>
+                  )}
                 </Link>
               </li>
             );
           })}
         </ul>
       </nav>
+      
+      {/* Metric Selector in Sidebar Footer */}
+      {isOpen && (
+        <div className="p-4 border-t border-gray-200">
+          <p className="text-xs text-gray-500 mb-2">Land Measurement</p>
+          <MetricSelector />
+        </div>
+      )}
     </aside>
   );
 };

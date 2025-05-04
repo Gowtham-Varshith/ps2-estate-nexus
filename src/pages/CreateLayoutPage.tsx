@@ -1,17 +1,21 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layouts/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMetric } from "@/contexts/MetricContext";
+import { convertArea, formatArea } from "@/utils/metricConversions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Upload, Plus, Minus } from "lucide-react";
+import { Upload, Plus, Minus, Calculator, Check } from "lucide-react";
 
 const CreateLayoutPage = () => {
   const { currentUser } = useAuth();
+  const { currentMetric } = useMetric();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -20,12 +24,26 @@ const CreateLayoutPage = () => {
     location: "",
     totalArea: "",
     govRatePerSqft: "",
+    marketRatePerSqft: "",
     description: "",
     plotCount: 0
   });
   
+  const [confirmChange, setConfirmChange] = useState(false);
+  const [marketConfirmed, setMarketConfirmed] = useState(false);
   const [plots, setPlots] = useState<{ plotNumber: string; areaSqft: string }[]>([]);
   const [blueprintFile, setBlueprintFile] = useState<File | null>(null);
+  
+  // Calculated fields
+  const totalMarketValue = formData.totalArea && formData.marketRatePerSqft ? 
+    parseFloat(formData.totalArea) * parseFloat(formData.marketRatePerSqft) * 
+    convertArea(1, currentMetric, 'sqft') : 0;
+    
+  const totalGovValue = formData.totalArea && formData.govRatePerSqft ? 
+    parseFloat(formData.totalArea) * parseFloat(formData.govRatePerSqft) * 
+    convertArea(1, currentMetric, 'sqft') : 0;
+    
+  const potentialProfit = totalMarketValue - totalGovValue;
   
   useEffect(() => {
     document.title = "Create Layout | PS2 Estate Nexus";
@@ -43,7 +61,24 @@ const CreateLayoutPage = () => {
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // If changing market rate, require confirmation
+    if (name === 'marketRatePerSqft' && value !== formData.marketRatePerSqft) {
+      setConfirmChange(true);
+      setMarketConfirmed(false);
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const confirmMarketRate = () => {
+    setConfirmChange(false);
+    setMarketConfirmed(true);
+    
+    toast({
+      title: "Market Rate Confirmed",
+      description: `Market rate set to ₹${parseFloat(formData.marketRatePerSqft).toLocaleString('en-IN')}/sqft`,
+    });
   };
   
   const handleAddPlot = () => {
@@ -82,6 +117,16 @@ const CreateLayoutPage = () => {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Market rate is required and must be confirmed
+    if (!formData.marketRatePerSqft || !marketConfirmed) {
+      toast({
+        title: "Market Rate Not Confirmed",
+        description: "Please enter and confirm the market rate",
         variant: "destructive"
       });
       return;
@@ -141,20 +186,32 @@ const CreateLayoutPage = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="totalArea">Total Area (in acres)</Label>
+                  <Label htmlFor="totalArea">Total Area (in {currentMetric})</Label>
                   <Input
                     id="totalArea"
                     name="totalArea"
                     type="number"
                     value={formData.totalArea}
                     onChange={handleInputChange}
-                    placeholder="Enter total area"
+                    placeholder={`Enter total area in ${currentMetric}`}
                     required
                   />
+                  {formData.totalArea && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {parseFloat(formData.totalArea) > 0 && currentMetric !== 'sqft' && (
+                        <p>
+                          ≈ {formatArea(
+                            parseFloat(formData.totalArea) * convertArea(1, currentMetric, 'sqft'),
+                            'sqft'
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="govRatePerSqft">Gov Rate (per sq.ft)</Label>
+                  <Label htmlFor="govRatePerSqft">Government Rate (per sq.ft)</Label>
                   <Input
                     id="govRatePerSqft"
                     name="govRatePerSqft"
@@ -165,6 +222,56 @@ const CreateLayoutPage = () => {
                     required
                   />
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="marketRatePerSqft" className="flex items-center">
+                  Market Rate (per sq.ft)
+                  {marketConfirmed && <Check className="ml-2 h-4 w-4 text-green-500" />}
+                </Label>
+                <div className="flex gap-2">
+                  <div className="flex-grow">
+                    <Input
+                      id="marketRatePerSqft"
+                      name="marketRatePerSqft"
+                      type="number"
+                      value={formData.marketRatePerSqft}
+                      onChange={handleInputChange}
+                      placeholder="Enter market rate"
+                      required
+                      className={confirmChange ? "border-orange-300 ring-1 ring-orange-200" : ""}
+                    />
+                  </div>
+                  {confirmChange && (
+                    <Button 
+                      type="button" 
+                      onClick={confirmMarketRate}
+                      variant="outline"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                    >
+                      Confirm Rate
+                    </Button>
+                  )}
+                </div>
+                {currentUser?.role === 'black' || currentUser?.role === 'admin' ? (
+                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                    <p className="text-sm font-medium">Profit Analysis</p>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <div>
+                        <p className="text-xs text-gray-500">Total Gov Value</p>
+                        <p className="text-sm font-medium">₹{totalGovValue.toLocaleString('en-IN')}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Total Market Value</p>
+                        <p className="text-sm font-medium">₹{totalMarketValue.toLocaleString('en-IN')}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Potential Profit</p>
+                        <p className="text-sm font-medium text-green-600">₹{potentialProfit.toLocaleString('en-IN')}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
               
               <div className="space-y-2">
