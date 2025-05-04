@@ -1,181 +1,275 @@
 
-import { useState, useEffect } from "react";
+import React, { useState } from 'react';
 import MainLayout from "@/components/layouts/MainLayout";
-import { Search, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, FileType, Table, BarChart, LineChart, Download } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
+import { AISearchResult } from '@/types/backupTypes';
 
 const AISearchPage = () => {
-  const [query, setQuery] = useState("");
+  const { currentUser } = useAuth();
+  const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<string[]>([]);
-  
-  // Set page title
-  useEffect(() => {
-    document.title = "AI Smart Search | PS2 Estate Nexus";
-  }, []);
-  
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const [results, setResults] = useState<AISearchResult[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [resultType, setResultType] = useState<'table' | 'chart' | 'report'>('table');
+
+  const dummySearchExamples = [
+    "Show expenses for PS2",
+    "List all plots sold in April",
+    "Show tea expenses from Mon-Fri",
+    "Generate report for PS2 in April",
+    "Calculate profit from Layout PS3"
+  ];
+
+  const handleSearch = async () => {
     if (!query.trim()) return;
     
     setIsSearching(true);
+    setHasSearched(true);
     
-    // Simulate AI search with a delay
+    // Simulate API call
     setTimeout(() => {
-      // Mock results based on search queries
-      let mockResults: string[] = [];
+      // Generate dummy results based on query
+      const searchTerm = query.toLowerCase();
       
-      if (query.toLowerCase().includes("due")) {
-        mockResults = [
-          "Plot GV003 has a due payment of ₹2,300,000 from client Jane Smith due on 15 Aug 2023",
-          "Plot SH002 has a due payment of ₹1,500,000 from client Robert Miller due on 20 Dec 2023",
-        ];
-      } else if (query.toLowerCase().includes("bill") || query.toLowerCase().includes("gv002")) {
-        mockResults = [
-          "Plot GV002 is available in Green Valley layout with 1800 sqft area",
-          "The Gov Rate for this plot is ₹2,700,000",
-          "Would you like to generate a bill for this plot?",
-        ];
-      } else if (query.toLowerCase().includes("layout")) {
-        mockResults = [
-          "There are 4 layouts in the system: Green Valley, Riverside Estate, Skyline Heights, and Meadow Gardens",
-          "Green Valley has 120 plots with 35% occupancy",
-          "Riverside Estate has 80 plots with 42% occupancy",
-        ];
+      if (searchTerm.includes('report') || searchTerm.includes('generate')) {
+        setResultType('report');
+      } else if (searchTerm.includes('chart') || searchTerm.includes('graph') || searchTerm.includes('profit')) {
+        setResultType('chart');
       } else {
-        mockResults = [
-          "I couldn't find specific information matching your query. Try asking about:",
-          "- Due payments (e.g., 'Show all due plots')",
-          "- Plot details (e.g., 'Tell me about GV002')",
-          "- Layout information (e.g., 'Show layout stats')",
-        ];
+        setResultType('table');
+        
+        // Generate dummy search results
+        const dummyResults: AISearchResult[] = [];
+        
+        if (searchTerm.includes('expense') || searchTerm.includes('tea') || searchTerm.includes('cost')) {
+          dummyResults.push(
+            { type: 'expense', id: 1, name: 'Tea Expenses', description: 'Daily tea expenses for staff', matchScore: 0.95 },
+            { type: 'expense', id: 2, name: 'HTGTA Tea Supplier', description: 'Monthly bulk tea purchase', matchScore: 0.88 },
+            { type: 'expense', id: 3, name: 'Transport to Tea Estate', description: 'Travel expenses', matchScore: 0.72 }
+          );
+        }
+        
+        if (searchTerm.includes('ps2') || searchTerm.includes('layout')) {
+          dummyResults.push(
+            { type: 'layout', id: 1, name: 'PS2 Layout', description: 'Premium residential layout', matchScore: 0.94 },
+            { type: 'plot', id: 2, name: 'PS2-A12', description: 'Corner plot in PS2', matchScore: 0.87 },
+            { type: 'bill', id: 3, name: 'PS2 Infrastructure Bill', description: 'Development charges', matchScore: 0.73 }
+          );
+        }
+        
+        if (searchTerm.includes('client') || searchTerm.includes('customer')) {
+          dummyResults.push(
+            { type: 'client', id: 1, name: 'Ramesh Kumar', description: 'PS2 Plot Owner', matchScore: 0.91 },
+            { type: 'client', id: 2, name: 'Suresh Patel', description: 'Interested in PS2', matchScore: 0.85 }
+          );
+        }
+        
+        setResults(dummyResults.length > 0 ? dummyResults : [
+          { type: 'expense', id: 1, name: 'Miscellaneous Expense', description: 'General search result', matchScore: 0.6 },
+          { type: 'layout', id: 2, name: 'Latest Layout', description: 'Recently added layout', matchScore: 0.5 }
+        ]);
       }
       
-      setResults(mockResults);
       setIsSearching(false);
-    }, 1500);
+    }, 1200);
   };
-  
-  return (
-    <MainLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">AI Smart Search</h1>
-        <p className="text-gray-600">Ask questions in natural language to find information</p>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <form onSubmit={handleSearch} className="mb-6">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+
+  const renderResults = () => {
+    if (isSearching) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Searching through your data...</p>
+          <p className="text-sm text-gray-500 mt-1">Analyzing query: "{query}"</p>
+        </div>
+      );
+    }
+    
+    if (hasSearched) {
+      if (resultType === 'table') {
+        return (
+          <div className="bg-white rounded-md shadow">
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-medium">Search Results</h3>
+              <p className="text-sm text-gray-500">Found {results.length} results for "{query}"</p>
             </div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-ps2-primary focus:border-ps2-primary text-base"
-              placeholder="e.g., Show all due plots, Send bill for GV002, Show layout stats..."
-              disabled={isSearching}
-            />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <button
-                type="submit"
-                disabled={isSearching || !query.trim()}
-                className={`inline-flex items-center p-1.5 rounded-full ${
-                  isSearching || !query.trim()
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-ps2-primary hover:bg-blue-50"
-                }`}
-              >
-                <Send className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </form>
-        
-        {isSearching ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-ps2-primary"></div>
-          </div>
-        ) : (
-          <>
-            {results.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">Results</h2>
-                
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                    <span className="text-sm font-medium text-gray-500">AI Assistant</span>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    {results.map((result, index) => (
-                      <p key={index} className="text-gray-800">
-                        {result}
-                      </p>
-                    ))}
-                  </div>
-                  
-                  {query.toLowerCase().includes("gv002") && (
-                    <div className="bg-gray-50 p-4 border-t border-gray-200">
-                      <div className="flex justify-end space-x-3">
-                        <button className="px-4 py-2 text-sm text-ps2-primary hover:bg-blue-50 rounded-md">
-                          View Plot Details
-                        </button>
-                        <button className="px-4 py-2 text-sm bg-ps2-primary text-white rounded-md hover:bg-ps2-secondary">
-                          Generate Bill
-                        </button>
+            
+            <div className="divide-y">
+              {results.map((result) => (
+                <div key={`${result.type}-${result.id}`} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-start">
+                    <div className="bg-gray-100 p-2 rounded-md mr-3">
+                      {result.type === 'layout' && <LineChart className="h-5 w-5 text-blue-500" />}
+                      {result.type === 'plot' && <Table className="h-5 w-5 text-green-500" />}
+                      {result.type === 'expense' && <BarChart className="h-5 w-5 text-amber-500" />}
+                      {result.type === 'client' && <Search className="h-5 w-5 text-purple-500" />}
+                      {result.type === 'bill' && <FileType className="h-5 w-5 text-red-500" />}
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">{result.name}</h4>
+                      <p className="text-sm text-gray-600 mb-1">{result.description}</p>
+                      <div className="text-xs text-gray-500">
+                        Match score: {Math.round(result.matchScore * 100)}%
                       </div>
                     </div>
-                  )}
-                  
-                  {query.toLowerCase().includes("due") && (
-                    <div className="bg-gray-50 p-4 border-t border-gray-200">
-                      <div className="flex justify-end space-x-3">
-                        <button className="px-4 py-2 text-sm text-ps2-primary hover:bg-blue-50 rounded-md flex items-center">
-                          <Send size={16} className="mr-2" />
-                          Send WhatsApp Reminder
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      } else if (resultType === 'chart') {
+        return (
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-medium">Analysis Results</h3>
+                <p className="text-sm text-gray-500">Generated chart for query: "{query}"</p>
+              </div>
+              
+              <div className="h-80 bg-gray-50 rounded border flex items-center justify-center mb-4">
+                <div className="text-center">
+                  <LineChart className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Chart visualization would appear here</p>
+                  <p className="text-xs text-gray-400">Based on your query: "{query}"</p>
                 </div>
               </div>
-            )}
-            
-            {!results.length && !isSearching && (
-              <div className="text-center py-10">
-                <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Ask anything about PS2 Estate</h3>
-                <p className="text-gray-600 max-w-md mx-auto">
-                  Try asking about due payments, available plots, layout statistics, or specific clients.
-                </p>
+              
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Data
+                </Button>
               </div>
-            )}
-          </>
-        )}
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Example Queries</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[
-            "Show all due plots",
-            "Send bill for GV002",
-            "Which plots are available in Green Valley?",
-            "Show layout statistics",
-            "Find clients who purchased in last month",
-            "What's the total revenue this year?"
-          ].map((example, index) => (
-            <button
-              key={index}
-              onClick={() => setQuery(example)}
-              className="p-3 text-left border border-gray-200 rounded-md hover:bg-gray-50 hover:border-ps2-primary text-sm"
+            </CardContent>
+          </Card>
+        );
+      } else if (resultType === 'report') {
+        return (
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-medium">Generated Report</h3>
+                <p className="text-sm text-gray-500">PDF report for query: "{query}"</p>
+              </div>
+              
+              <div className="h-96 bg-gray-50 rounded border flex items-center justify-center mb-4">
+                <div className="text-center">
+                  <FileType className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">PDF report preview would appear here</p>
+                  <p className="text-xs text-gray-400">Based on your query: "{query}"</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <Button>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Report
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+    }
+    
+    return (
+      <div className="text-center py-12">
+        <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Try searching for something</h3>
+        <p className="text-gray-500 mb-8 max-w-md mx-auto">
+          Use natural language to search across all your data, generate reports, and find insights.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-lg mx-auto">
+          {dummySearchExamples.map((example, i) => (
+            <Button 
+              key={i} 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setQuery(example);
+              }}
+              className="justify-start text-sm"
             >
+              <Search className="h-3 w-3 mr-2" />
               {example}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <MainLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">AI Search Assistant</h1>
+        <p className="text-gray-600">Search and analyze data using natural language</p>
+      </div>
+      
+      <div className="mb-8">
+        <div className="flex gap-2">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Ask a question or search for something..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="pl-10"
+            />
+          </div>
+          <Button onClick={handleSearch} disabled={isSearching || !query.trim()}>
+            Search
+          </Button>
+        </div>
+        
+        {currentUser?.role === 'black' || currentUser?.role === 'admin' ? (
+          <div className="mt-3 text-sm text-gray-600">
+            <p className="font-medium">Pro features available:</p>
+            <ul className="list-disc list-inside ml-2 text-gray-500">
+              <li>Complex analytics queries</li>
+              <li>Report generation</li>
+              <li>Profit/loss calculations</li>
+            </ul>
+          </div>
+        ) : null}
+      </div>
+      
+      <Tabs defaultValue="results" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="history">Search History</TabsTrigger>
+          <TabsTrigger value="saved">Saved Searches</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="results" className="p-0">
+          {renderResults()}
+        </TabsContent>
+        
+        <TabsContent value="history" className="p-0">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-500">Your recent searches will appear here</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="saved" className="p-0">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-500">You have no saved searches</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </MainLayout>
   );
 };

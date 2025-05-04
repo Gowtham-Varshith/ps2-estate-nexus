@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -162,7 +163,7 @@ const App = () => (
                 } 
               />
               
-              {/* For backward compatibility - Fix TypeScript error */}
+              {/* For backward compatibility */}
               <Route 
                 path="/clients" 
                 element={<Navigate to="/info" replace />} 
@@ -170,7 +171,7 @@ const App = () => (
               
               <Route 
                 path="/clients/:id" 
-                element={<Navigate to={(location) => `/info/${location.pathname.split('/').pop() || ''}`} replace />} 
+                element={<Navigate to={`/info/${location.pathname.split('/').pop()}`} replace />} 
               />
               
               {/* Document routes */}

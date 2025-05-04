@@ -12,6 +12,12 @@ export const getBackupType = (type: string): BackupType => {
       return BackupType.DIFFERENTIAL;
     case "snapshot":
       return BackupType.SNAPSHOT;
+    case "external":
+      return BackupType.EXTERNAL;
+    case "cloud":
+      return BackupType.CLOUD;
+    case "local":
+      return BackupType.LOCAL;
     default:
       return BackupType.FULL;
   }
@@ -28,6 +34,8 @@ export const getBackupStatus = (status: string): BackupStatus => {
       return BackupStatus.FAILED;
     case "in-progress":
       return BackupStatus.IN_PROGRESS;
+    case "scheduled":
+      return BackupStatus.SCHEDULED;
     default:
       return BackupStatus.PENDING;
   }
