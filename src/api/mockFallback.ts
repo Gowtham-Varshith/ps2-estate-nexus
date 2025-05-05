@@ -1,4 +1,3 @@
-
 import { 
   users, 
   layouts, 
@@ -23,6 +22,23 @@ import {
   getBackupLogs, 
   getPlotsSoldPerLayout
 } from "@/data/mockData";
+
+import { DocumentType } from "@/types/documentTypes";
+
+const determineDocumentType = (filename: string): DocumentType => {
+  const extension = filename.split('.').pop()?.toLowerCase() || '';
+  
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+  const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'mkv'];
+  
+  if (imageExtensions.includes(extension)) {
+    return 'image';
+  } else if (videoExtensions.includes(extension)) {
+    return 'video';
+  } else {
+    return 'document';
+  }
+};
 
 // Mock API implementation that uses the mock data
 // This is used when the app is not running in Electron or when the API is not available
@@ -246,8 +262,7 @@ export const mockData = {
             id: doc.id,
             name: doc.name,
             size: `${Math.floor(Math.random() * 10) + 1} MB`,
-            type: doc.name.endsWith('.pdf') ? "document" : 
-                  doc.name.endsWith('.jpg') || doc.name.endsWith('.png') ? "image" : "video",
+            type: determineDocumentType(doc.name),
             url: doc.fileUrl,
             uploadDate: doc.uploadedAt.split('T')[0]
           })),
@@ -262,8 +277,7 @@ export const mockData = {
           id: doc.id,
           name: doc.name,
           size: `${Math.floor(Math.random() * 10) + 1} MB`,
-          type: doc.name.endsWith('.pdf') ? "document" : 
-                doc.name.endsWith('.jpg') || doc.name.endsWith('.png') ? "image" : "video",
+          type: determineDocumentType(doc.name),
           url: doc.fileUrl,
           uploadDate: doc.uploadedAt.split('T')[0]
         }));
@@ -1054,3 +1068,5 @@ export const mockData = {
     }
   }
 };
+
+export default mockData;

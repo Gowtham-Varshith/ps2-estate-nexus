@@ -34,21 +34,27 @@ export interface BackupConfig {
   destination: string;
 }
 
-// Add missing types referenced in errors
+// Add notification and AI search types needed by MainLayout
 export interface NotificationItem {
   id: number;
   title: string;
   description: string;
   date: string;
-  status: 'read' | 'unread';
-  type: 'bill' | 'payment' | 'reminder' | 'alert';
-  actionLabel?: string;
+  read: boolean;
+  type: 'bill' | 'payment' | 'reminder' | 'alert' | 'warning' | 'info' | 'success' | 'error' | 'expense';
+  action?: {
+    label: string;
+    url: string;
+  };
 }
 
 export interface AISearchResult {
-  type: 'client' | 'layout' | 'plot' | 'expense' | 'bill';
-  id: number;
-  name: string;
-  description: string;
-  matchScore: number;
+  query?: string;
+  results?: Array<{
+    type: string;
+    count: number;
+    items?: Array<any>;
+  }>;
+  suggestion?: string;
+  totalMatches?: number;
 }

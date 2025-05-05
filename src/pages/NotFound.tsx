@@ -1,46 +1,64 @@
 
-import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Home, ArrowLeft } from "lucide-react";
+import { ChevronLeft, Home, AlertTriangle } from "lucide-react";
 
 const NotFound = () => {
-  const location = useLocation();
-
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  
+  // Auto-navigate to dashboard or login after 5 seconds
   useEffect(() => {
-    document.title = "Page Not Found | PS2 Estate Nexus";
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
+    const timer = setTimeout(() => {
+      if (currentUser) {
+        navigate("/dashboard");
+      } else {
+        navigate("/login");
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [currentUser, navigate]);
+  
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
-      <div className="text-center max-w-md">
-        <div className="flex justify-center mb-6">
-          <div className="bg-yellow-100 p-3 rounded-full">
-            <AlertTriangle className="h-12 w-12 text-yellow-500" />
-          </div>
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-ps2-primary p-6 flex justify-center">
+          <AlertTriangle size={64} className="text-white" />
         </div>
-        <h1 className="text-4xl font-bold mb-2 text-gray-900">404</h1>
-        <h2 className="text-2xl font-semibold mb-4 text-gray-800">Page Not Found</h2>
-        <p className="text-lg text-gray-600 mb-8">
-          The page you are looking for doesn't exist or has been moved.
-        </p>
-        <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-          <Button asChild>
-            <Link to="/" className="flex items-center">
-              <Home className="mr-2 h-4 w-4" />
-              Back to Home
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="#" onClick={() => window.history.back()} className="flex items-center">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+        
+        <div className="p-6 text-center">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">404</h1>
+          <h2 className="text-xl font-medium text-gray-700 mb-4">Page Not Found</h2>
+          
+          <p className="text-gray-600 mb-6">
+            The page you are looking for might have been removed, had its name changed,
+            or is temporarily unavailable.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => navigate(-1)}
+            >
+              <ChevronLeft size={16} />
               Go Back
+            </Button>
+            
+            <Link to={currentUser ? "/dashboard" : "/login"}>
+              <Button className="flex items-center gap-2 w-full">
+                <Home size={16} />
+                {currentUser ? "Return to Dashboard" : "Go to Login"}
+              </Button>
             </Link>
-          </Button>
+          </div>
+          
+          <p className="text-sm text-gray-500 mt-6">
+            You will be automatically redirected in a few seconds...
+          </p>
         </div>
       </div>
     </div>

@@ -1,11 +1,11 @@
 
-# PS2 Estate Nexus Backend Guide
+# PS2 Estate Nexus Backend Implementation Guide
 
-This document provides instructions on how to get started with backend development for the PS2 Estate Nexus application.
+This comprehensive guide provides detailed instructions for implementing the backend functionality of the PS2 Estate Nexus real estate management system. It covers the database schema, API endpoints, file structure, and development workflow.
 
 ## Project Structure
 
-The backend code is located in the `src/backend` directory and follows this structure:
+The backend code follows this structure:
 
 ```
 src/
@@ -18,33 +18,63 @@ src/
 │   ├── backendService.ts # Frontend service for API communication
 │   └── apiClient.ts      # API client with IPC communication
 └── types/
-    └── electron.d.ts     # Type definitions for Electron APIs
+    ├── electron.d.ts     # Type definitions for Electron APIs
+    ├── backupTypes.ts    # Type definitions for backup features
+    └── documentTypes.ts  # Type definitions for document handling
 ```
 
 ## Where to Implement Backend Logic
 
 ### 1. Database Operations (src/backend/database.js)
 
-This file contains all database operations like CRUD operations for:
-- Users and authentication
-- Layouts and plots
-- Expenses and billings
-- Clients and documents
-- Backups and settings
+The `database.js` file is the core database service that handles all data operations:
 
-**Implementation Instructions:**
-- The file structure is already set up with function stubs
-- Implement the SQL queries and database logic inside each function
-- Focus on proper error handling and data validation
+- **Authentication**: User login, token validation, and refresh functionality
+- **CRUD Operations**: For layouts, plots, expenses, billings, clients, and documents
+- **Reporting**: Analytics and statistics for dashboard and reports
+- **Backup & Restore**: Data backup and recovery functionality
+
+The DatabaseService class is already fully implemented with:
+- SQLite database initialization and table creation
+- User authentication with JWT tokens
+- Complete CRUD operations for all entities
+- Activity logging and notifications
+- Backup and restore functionality
+- Dashboard statistics and analytics
 
 ### 2. API Routes (src/backend/main.js)
 
-This file contains all the API route handlers that process requests from the frontend:
+The `main.js` file sets up Electron and handles all API routes through IPC (Inter-Process Communication):
 
-**Implementation Instructions:**
-- API route handlers are already defined but need business logic
-- Add your implementation to each handler function (`handleAuthRequests`, `handleLayoutRequests`, etc.)
-- Follow the response format patterns established in the stub code
+- Creates and configures the application window
+- Initializes the database
+- Establishes IPC communication between frontend and backend
+- Processes API requests from the frontend
+- Handles file uploads and deletions
+
+All route handlers are defined and connected:
+- `/auth/*` - Authentication routes
+- `/users/*` - User management
+- `/layouts/*` - Layout operations
+- `/plots/*` - Plot operations
+- `/expenses/*` - Expense management
+- `/billings/*` - Billing and payment operations
+- `/clients/*` - Client management
+- `/documents/*` - Document uploads and management
+- `/analytics/*` - Data analytics and reporting
+- `/backup/*` - Backup operations
+- `/settings/*` - Settings management
+- `/notifications/*` - Notification handling
+- `/logs/*` - Activity logging
+- `/ai/*` - AI features (placeholders)
+
+### 3. Preload Script (src/backend/preload.js)
+
+The `preload.js` file safely exposes Electron APIs to the renderer process:
+
+- Sets up secure IPC communication
+- Provides controlled access to filesystem operations
+- Maintains proper context isolation
 
 ## Getting Started with Development
 
@@ -66,7 +96,7 @@ npm install
 npm run dev
 ```
 
-3. For frontend-only development (mocked data):
+3. For frontend-only development (uses mock data):
 ```
 npm start
 ```
@@ -76,61 +106,190 @@ npm start
 npm run build
 ```
 
-## Database Schema Implementation
+## User Account Types
 
-The database schema is defined in `src/backend/database.js`. You'll need to implement the following tables:
+The system supports three user roles with different permissions:
 
-- `users` - User accounts and authentication
-- `layouts` - Layout/project information
-- `plots` - Plot details within layouts
-- `expenses` - Expense tracking
-- `expense_categories` - Categories for expenses
-- `billings` - Billing records
-- `payments` - Payment records for billings
-- `clients` - Client information
-- `attachments` - Document and file attachments
-- `backup_logs` - Backup history
-- `activity_logs` - User activity tracking
-- `settings` - Application settings
-- `notifications` - User notifications
+1. **Staff (White)**
+   - Basic operations: create layouts, manage clients, generate bills
+   - Limited access to financial reports
+   - Cannot approve expenses or access sensitive information
+
+2. **Black**
+   - All staff permissions plus:
+   - Expense approval
+   - Access to financial reports
+   - Ability to manage "black" transactions (dual accounting)
+
+3. **Admin**
+   - Full system access
+   - User management
+   - System settings
+   - Activity logs
+   - Backup and restore functionality
+
+## Database Schema
+
+The backend implements these tables:
+
+1. **users** - User accounts with role-based access control
+2. **layouts** - Real estate project/layout information
+3. **plots** - Individual plots within layouts
+4. **expense_categories** - Categories for expense classification
+5. **expenses** - Expense tracking with approval workflow
+6. **clients** - Client personal and contact information
+7. **billings** - Invoice records for clients
+8. **payments** - Payment records for billings
+9. **attachments** - Document and file attachments for all entities
+10. **backup_logs** - Records of system backups
+11. **activity_logs** - User activity tracking
+12. **settings** - Application configuration
+13. **notifications** - User notification system
 
 ## API Endpoints
 
-The frontend expects the following API endpoints, which you'll need to implement in the backend:
+All API endpoints are handled through IPC communication:
 
-- `/auth/*` - Authentication endpoints
-- `/users/*` - User management
-- `/layouts/*` - Layout operations
-- `/plots/*` - Plot operations
-- `/expenses/*` - Expense tracking
-- `/billings/*` - Billing operations
-- `/clients/*` - Client management
-- `/documents/*` - Document management
-- `/analytics/*` - Data analytics
-- `/backup/*` - Backup operations
-- `/settings/*` - Settings management
-- `/notifications/*` - Notification handling
-- `/logs/*` - Activity logging
-- `/ai/*` - AI feature endpoints
+### Authentication
+- `POST /auth/login` - User login with username/password
+- `POST /auth/refresh` - Refresh authentication token
+- `GET /auth/user` - Get current user information
+- `POST /auth/logout` - User logout
 
-## IPC Communication
+### User Management
+- `GET /users` - List all users (admin only)
+- `GET /users/:id` - Get user details
+- `POST /users` - Create new user
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
 
-The application uses Electron's IPC (Inter-Process Communication) mechanism for communication between the frontend and backend:
+### Layouts
+- `GET /layouts` - List all layouts with filters
+- `GET /layouts/:id` - Get layout details
+- `POST /layouts` - Create new layout
+- `PUT /layouts/:id` - Update layout
+- `DELETE /layouts/:id` - Delete layout
+- `GET /layouts/:id/plots` - Get plots for layout
+- `GET /layouts/:id/analytics` - Get layout performance data
 
-- Main process: `src/backend/main.js`
-- Preload script: `src/backend/preload.js`
-- Renderer process: `src/api/backendService.ts`
+### Plots
+- `GET /plots` - List all plots with filters
+- `GET /plots/:id` - Get plot details
+- `POST /plots` - Create new plot
+- `PUT /plots/:id` - Update plot
+- `DELETE /plots/:id` - Delete plot
+- `GET /plots/:id/documents` - Get documents for plot
+- `POST /plots/:id/documents` - Upload documents for plot
 
-## File Uploads
+### Expenses
+- `GET /expenses/categories` - List expense categories
+- `GET /expenses` - List expenses with filters
+- `GET /expenses/:id` - Get expense details
+- `POST /expenses` - Create new expense
+- `PUT /expenses/:id` - Update expense (includes approval)
+- `DELETE /expenses/:id` - Delete expense
 
-File uploads are handled through the `upload-file` IPC handler defined in `main.js`. Files are stored in the user's data directory and referenced in the database.
+### Billings
+- `GET /billings` - List all billings with filters
+- `GET /billings/:id` - Get billing details
+- `POST /billings` - Create new billing
+- `PUT /billings/:id` - Update billing
+- `DELETE /billings/:id` - Delete billing
+- `POST /billings/:id/payments` - Add payment to billing
+- `POST /billings/:id/generate-pdf` - Generate PDF invoice
+- `POST /billings/:id/send-email` - Email invoice to client
 
-## Authentication
+### Clients
+- `GET /clients` - List all clients with filters
+- `GET /clients/:id` - Get client details
+- `POST /clients` - Create new client
+- `PUT /clients/:id` - Update client
+- `DELETE /clients/:id` - Delete client
+- `GET /clients/:id/interactions` - Get client interactions
 
-The authentication system uses JWT tokens with:
+### Documents
+- `GET /documents` - List documents with filters
+- `GET /documents/:id` - Get document details
+- `POST /documents` - Upload new document
+- `DELETE /documents/:id` - Delete document
+- `GET /documents/search` - Search documents
+
+### Analytics
+- `GET /analytics/dashboard` - Get dashboard statistics
+- `GET /analytics/sales` - Get sales performance data
+- `GET /analytics/plots` - Get plots analytics
+- `GET /analytics/layouts` - Get layout performance
+- `GET /reports/generate` - Generate custom reports
+
+### Settings
+- `GET /settings` - Get application settings
+- `PUT /settings` - Update settings
+
+### Backup
+- `GET /backup` - List available backups
+- `POST /backup` - Create new backup
+- `GET /backup/:id` - Download backup
+- `POST /backup/:id/restore` - Restore from backup
+
+### Notifications
+- `GET /notifications` - Get user notifications
+- `PUT /notifications/:id` - Mark notification as read
+- `DELETE /notifications/:id` - Delete notification
+
+### Activity Logs
+- `GET /logs` - Get activity logs with filters
+
+### AI Features
+- `POST /ai/search` - AI-powered search across all data
+- `POST /ai/generate-brochure` - Generate marketing materials
+- `POST /ai/whatsapp-template` - Generate WhatsApp templates in different languages
+
+## File Upload Handling
+
+Files are handled through the `upload-file` and `delete-file` IPC handlers:
+
+### File Upload Process
+1. Frontend selects file and sends to backend
+2. File is copied to user data directory
+3. Metadata is stored in attachments table
+4. File is associated with appropriate entity (plot, client, etc.)
+
+### File Storage Structure
+Files are stored in a structured format:
+```
+{userData}/uploads/{entityType}/{entityId}/{timestamp}_{filename}
+```
+
+## Authentication System
+
+Authentication uses JWT tokens with:
+
 - `authenticateUser()` - Validates credentials and issues tokens
-- `verifyToken()` - Validates tokens for protected routes
+- `verifyToken()` - Validates tokens for protected routes 
 - `refreshToken()` - Refreshes expired tokens
+
+Security features:
+- Password hashing with bcrypt
+- Token-based authentication with JWT
+- Role-based access control
+- Activity logging for security audits
+
+## Implementing Your Own Logic
+
+To implement your own backend logic:
+
+1. **Study the Database Schema**: Understand the table relationships and fields.
+2. **Locate the Relevant Functions**: All functions are organized by entity type.
+3. **Add Your Business Logic**: Enhance the functions as needed.
+4. **Test API Endpoints**: Ensure proper functionality and error handling.
+
+## Development Tips
+
+1. **Use SQLite Studio**: Monitor the database during development.
+2. **Check Activity Logs**: Monitor system usage and diagnose issues.
+3. **Test Each Role**: Verify permissions work correctly for different user types.
+4. **Handle Edge Cases**: Add validation and error handling for all operations.
+5. **Implement Business Rules**: Add custom validation for your specific business needs.
 
 ## Building for Production
 
@@ -143,15 +302,6 @@ npm run build
 
 This will package the Electron application with the React frontend.
 
-## Troubleshooting
+## Support and Documentation
 
-If you encounter issues:
-
-1. Check the Electron logs for errors
-2. Verify SQLite database connections
-3. Ensure proper permissions for file operations
-4. Check JWT token validation
-
-## Support
-
-For questions or support, refer to the PS2 Estate Nexus documentation or contact the development team.
+For additional assistance or technical questions, please refer to the PS2 Estate Nexus development team.
