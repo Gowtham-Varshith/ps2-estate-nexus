@@ -14,7 +14,7 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -25,12 +25,17 @@ const LoginPage = () => {
       return;
     }
     
-    const success = login(username, password, selectedRole);
-    
-    if (success) {
-      navigate("/dashboard");
-    } else {
-      setError("Invalid credentials for selected role");
+    try {
+      const success = await login(username, password, selectedRole);
+      
+      if (success) {
+        navigate("/dashboard");
+      } else {
+        setError("Invalid credentials for selected role");
+      }
+    } catch (err) {
+      setError(`Login failed: ${err.message || 'An error occurred'}`);
+    } finally {
       setIsLoading(false);
     }
   };

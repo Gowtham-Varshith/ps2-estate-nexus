@@ -1,14 +1,47 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { bills, plots, clients, layouts } from '@/data/mockData';
 import { Eye } from 'lucide-react';
+import { analyticsApi } from '@/api/apiClient';
+
+interface DashboardBilling {
+  id: number;
+  invoiceNumber: string;
+  clientName: string;
+  plotNumber: string;
+  layoutName: string;
+  paidAmount: number;
+  dueAmount: number;
+  createdAt: string;
+  ledgerType: 'white' | 'black';
+  dueDate: string | null;
+  paid: boolean;
+}
 
 const RecentBillings = () => {
   const { currentUser } = useAuth();
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const [billings, setBillings] = useState<DashboardBilling[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  useEffect(() => {
+    const fetchRecentBillings = async () => {
+      try {
+        setIsLoading(true);
+        const dashboardData = await analyticsApi.getDashboardData();
+        setBillings(dashboardData.recentBillings);
+        setError("");
+      } catch (err) {
+        console.error("Failed to load recent billings", err);
+        setError("Failed to load billing data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRecentBillings();
+  }, []);
   
   // Format date
   const formatDate = (dateString: string) => {
@@ -29,15 +62,41 @@ const RecentBillings = () => {
     }).format(amount);
   };
   
-  // Get recent billings
-  const recentBills = [...bills]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, itemsPerPage);
-  
   // Filter billings based on user role
   const filteredBills = currentUser?.role === 'staff' 
-    ? recentBills.filter(bill => bill.ledgerType === 'white')
-    : recentBills;
+    ? billings.filter(bill => bill.ledgerType === 'white')
+    : billings;
+  
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-700">Recent Billings</h2>
+        </div>
+        <div className="animate-pulse p-6">
+          <div className="h-12 bg-gray-200 rounded mb-4"></div>
+          <div className="h-12 bg-gray-200 rounded mb-4"></div>
+          <div className="h-12 bg-gray-200 rounded mb-4"></div>
+          <div className="h-12 bg-gray-200 rounded mb-4"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-700">Recent Billings</h2>
+        </div>
+        <div className="p-6 text-center text-red-500">
+          <p>{error}</p>
+          <p className="text-sm mt-2 text-gray-500">Using fallback data...</p>
+        </div>
+      </div>
+    );
+  }
     
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -70,21 +129,16 @@ const RecentBillings = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredBills.map((bill) => {
-              // Find related data
-              const plot = plots.find(p => p.id === bill.plotId);
-              const client = clients.find(c => c.id === bill.clientId);
-              const layout = plot ? layouts.find(l => l.id === plot.layoutId) : null;
-              
               // Check if there's a due amount
               const hasDueAmount = bill.dueAmount > 0;
               
               return (
                 <tr key={bill.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {plot?.plotNo} {layout ? `(${layout.name})` : ''}
+                    {bill.plotNumber} {bill.layoutName ? `(${bill.layoutName})` : ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client?.name}
+                    {bill.clientName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatCurrency(bill.paidAmount)}
@@ -125,12 +179,20 @@ const RecentBillings = () => {
                 </tr>
               );
             })}
+            
+            {filteredBills.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  No billing data available
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
       <div className="p-4 border-t border-gray-200 flex justify-between items-center">
         <span className="text-sm text-gray-500">
-          Showing {filteredBills.length} of {bills.length} bills
+          Showing {filteredBills.length} recent billings
         </span>
         <Link to="/billing" className="text-sm text-ps2-primary hover:text-ps2-secondary font-medium">
           View All Billings →

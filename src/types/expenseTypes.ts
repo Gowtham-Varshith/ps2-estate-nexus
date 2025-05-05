@@ -56,11 +56,11 @@ export interface NotificationItem {
 
 // Add types for AI search results needed in MainLayout
 export interface AISearchResult {
-  type: 'client' | 'layout' | 'plot' | 'expense' | 'bill';
-  id: number;
-  name: string;
-  description: string;
-  matchScore: number;
+  type?: 'client' | 'layout' | 'plot' | 'expense' | 'bill';
+  id?: number;
+  name?: string;
+  description?: string;
+  matchScore?: number;
   results?: Array<{
     id: number;
     title: string;
@@ -70,4 +70,18 @@ export interface AISearchResult {
   totalMatches?: number;
   query?: string;
   suggestion?: string;
+}
+
+// Add backup types
+export type BackupType = 'local' | 'external' | 'cloud';
+export type BackupStatus = 'success' | 'warning' | 'error';
+
+export interface BackupLog {
+  id: number;
+  date: string;
+  time: string;
+  type: BackupType;
+  status: BackupStatus;
+  size: string;
+  user: string;
 }
