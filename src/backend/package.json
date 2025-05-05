@@ -1,0 +1,58 @@
+
+{
+  "name": "ps2-estate-nexus",
+  "version": "1.0.0",
+  "description": "PS2 Estate Nexus - Real Estate Management System",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "author": "PS2 Estate",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^28.2.6",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.ps2.estatenexus",
+    "productName": "PS2 Estate Nexus",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "database.js",
+      "../build/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "../build/favicon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "../build/favicon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "../build/favicon.ico"
+    }
+  }
+}

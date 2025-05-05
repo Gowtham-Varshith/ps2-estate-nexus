@@ -10,7 +10,7 @@ import { mockData } from "./mockFallback";
 
 // Check if we're running in Electron
 const isElectron = () => {
-  return window && window.process && window.process.type === 'renderer';
+  return window && window.process && process.versions.electron !== undefined;
 };
 
 // Get the IPC renderer if available

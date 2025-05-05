@@ -47,11 +47,11 @@ export interface NotificationItem {
   type: 'bill' | 'payment' | 'reminder' | 'alert' | 'expense' | 'warning' | 'info' | 'success' | 'error';
   actionLabel?: string;
   actionUrl?: string;
-  read?: boolean; // Added to support MainLayout component
+  read?: boolean;
   action?: {
     label: string;
     url: string;
-  }; // Added to support MainLayout component
+  };
 }
 
 // Add types for AI search results needed in MainLayout
