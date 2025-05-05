@@ -30,6 +30,7 @@ import InfoDetailPage from "./pages/InfoDetailPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import PlotDetailPage from "./pages/PlotDetailPage";
+import ReportsPage from "./pages/ReportsPage"; // Added Reports page
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -140,6 +141,16 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <CreateExpensePage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Reports route */}
+              <Route 
+                path="/reports" 
+                element={
+                  <ProtectedRoute>
+                    <ReportsPage />
                   </ProtectedRoute>
                 } 
               />

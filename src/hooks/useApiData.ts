@@ -118,7 +118,12 @@ export function useApiData<T, P = any>(
     };
   }, [fetchData]);
 
-  return { data, isLoading, error, refetch: fetchData };
+  // Fix the return type of refetch
+  const refetch = useCallback(async (): Promise<void> => {
+    await fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch };
 }
 
 export default useApiData;

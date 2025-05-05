@@ -85,3 +85,6 @@ export interface BackupLog {
   size: string;
   user: string;
 }
+
+// Document type for document errors
+export type DocumentType = 'image' | 'video' | 'document';
